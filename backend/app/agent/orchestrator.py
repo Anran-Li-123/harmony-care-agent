@@ -19,10 +19,19 @@ from app.schemas.models import (
 class ContextAssembler:
     """Provides a bounded view; full historical memory is never blindly sent to an LLM."""
 
-    def assemble(self, state: ContextState) -> ContextState:
+    def assemble(self, state: ContextState, event: CareEvent) -> ContextState:
         clone = state.model_copy(deep=True)
-        clone.working_memory = clone.working_memory[-6:]
-        clone.episodic_memory = clone.episodic_memory[-6:]
+        target = clone.target_person(event.target_person_id)
+        for person in clone.people.values():
+            if target and person.person_id == target.person_id:
+                person.working_memory = person.working_memory[-6:]
+                person.episodic_memory = person.episodic_memory[-6:]
+            else:
+                # Keep household identity/location/status, not another person's long history.
+                person.working_memory = []
+                person.episodic_memory = []
+                person.user_profile = {}
+        clone.sync_legacy_projection(event.target_person_id)
         return clone
 
 
@@ -42,7 +51,7 @@ class AgentOrchestrator:
             TimelineItem(title="新事件进入系统", detail=f"{event.source} · {event.type}", stage="event", tone="info"),
             TimelineItem(title="上下文已组装", detail="短期记忆、近期事件、画像、设备与环境状态已按需收集", stage="context", tone="info"),
         ]
-        context = self.assembler.assemble(state)
+        context = self.assembler.assemble(state, event)
         forced_risk, safety_evidence = self.safety.evaluate(context, event)
         retrieved = self.knowledge.retrieve(context, event)
         timeline.append(TimelineItem(title="知识检索完成", detail=f"命中 {len(retrieved)} 条家庭规则", stage="knowledge", tone="info"))
@@ -69,7 +78,8 @@ class AgentOrchestrator:
         decision.memory_updates = self.memory.extract(state, event, decision)
         episode_id = self.memory.apply(state, event, decision)
         decision.profile_candidates = self.profile.candidates(state, event, episode_id)
-        decision.profile_changes = self.profile.apply(state, decision.profile_candidates)
+        decision.profile_changes = self.profile.apply(state, decision.profile_candidates, event.target_person_id)
+        state.sync_legacy_projection(event.target_person_id)
         executions = self.router.dispatch(state, actions)
         for execution in executions:
             decision.timeline.append(TimelineItem(title="设备动作", detail=execution, stage="router", tone="danger" if risk == RiskLevel.HIGH else "success"))

@@ -9,8 +9,8 @@ const roomNames: Record<string, string> = { living_room: "客厅", bedroom: "卧
 
 function occupant(context: Context, id: string) {
   const people = context.environment.occupancy[id] || [];
-  if (people.includes("grandpa")) return { label: "老人", mark: "老" };
-  if (people.includes("child")) return { label: "儿童", mark: "小" };
+  const member = Object.values(context.people).find((person) => people.includes(person.person_id) || people.includes(person.role === "elder" ? "grandpa" : "child"));
+  if (member) return { label: member.name, mark: member.role === "elder" ? "老" : "小" };
   return null;
 }
 

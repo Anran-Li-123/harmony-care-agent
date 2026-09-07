@@ -1,0 +1,87 @@
+{
+  "schema_version": "2.0",
+  "household": {"household_id": "family_001", "name": "李家", "household_memory": [
+    {"id": "h7_w01", "timestamp": "2026-09-05T18:22:00+08:00", "kind": "family", "content": "一家人在客厅简单交流当天安排", "expires_hint": "近期家庭背景"},
+    {"id": "h7_w02", "timestamp": "2026-09-06T14:12:00+08:00", "kind": "device", "content": "客厅网络短暂波动后自行恢复", "expires_hint": "近期设备背景"}
+  ]},
+  "people": {
+    "elder_li": {
+      "person_id": "elder_li", "role": "elder", "name": "李爷爷", "location": "bedroom", "status": "normal", "working_memory": [
+        {"id": "e7_w01", "timestamp": "2026-09-06T20:18:00+08:00", "kind": "preference", "content": "今晚选择听一小段京剧后休息", "expires_hint": "近期会话"}
+      ],
+      "episodic_memory": [
+        {"id":"e7n_e01","timestamp":"2026-08-31T07:08:00+08:00","person":"elder_li","event":"起床后在卧室整理床铺","location":"bedroom","result":"状态正常","importance":"normal"},
+        {"id":"e7n_e02","timestamp":"2026-08-31T19:24:00+08:00","person":"elder_li","event":"晚饭后在小区散步约二十五分钟","location":"outdoor","result":"按时回家","importance":"normal"},
+        {"id":"e7n_e03","timestamp":"2026-09-01T20:12:00+08:00","person":"elder_li","event":"请机器人播放京剧选段","location":"living_room","result":"收听三十分钟","importance":"normal"},
+        {"id":"e7n_e04","timestamp":"2026-09-02T10:16:00+08:00","person":"elder_li","event":"在客厅看报并与机器人聊新闻","location":"living_room","result":"交流自然","importance":"low"},
+        {"id":"e7n_e05","timestamp":"2026-09-02T19:31:00+08:00","person":"elder_li","event":"晚饭后散步，途中短暂停留和邻居交谈","location":"outdoor","result":"20:02回家","importance":"normal"},
+        {"id":"e7n_e06","timestamp":"2026-09-03T07:15:00+08:00","person":"elder_li","event":"起床后在客厅做舒缓活动","location":"living_room","result":"状态正常","importance":"normal"},
+        {"id":"e7n_e07","timestamp":"2026-09-03T20:05:00+08:00","person":"elder_li","event":"选择熟悉的京剧节目作为晚间娱乐","location":"living_room","result":"主动表示喜欢","importance":"normal"},
+        {"id":"e7n_e08","timestamp":"2026-09-04T14:26:00+08:00","person":"elder_li","event":"午休后在客厅阅读","location":"living_room","result":"活动规律","importance":"low"},
+        {"id":"e7n_e09","timestamp":"2026-09-04T19:18:00+08:00","person":"elder_li","event":"因小雨取消户外散步，改在客厅缓步活动","location":"living_room","result":"自然调整安排","importance":"normal"},
+        {"id":"e7n_e10","timestamp":"2026-09-05T09:42:00+08:00","person":"elder_li","event":"提醒机器人说话慢一些、音量柔和一些","location":"living_room","result":"机器人已调整","importance":"normal"},
+        {"id":"e7n_e11","timestamp":"2026-09-05T19:27:00+08:00","person":"elder_li","event":"晚饭后按惯例外出散步","location":"outdoor","result":"十九点五十八分回家","importance":"normal"},
+        {"id":"e7n_e12","timestamp":"2026-09-06T15:08:00+08:00","person":"elder_li","event":"午后主动点播京剧并跟着哼唱","location":"living_room","result":"情绪轻松","importance":"normal"},
+        {"id":"e7n_e13","timestamp":"2026-09-06T20:18:00+08:00","person":"elder_li","event":"与机器人确认今晚想早些休息","location":"living_room","result":"已安排温和提醒","importance":"normal"},
+        {"id":"e7n_e14","timestamp":"2026-09-06T21:56:00+08:00","person":"elder_li","event":"关闭客厅电视并进入卧室","location":"bedroom","result":"准备休息","importance":"normal"},
+        {"id":"e7n_e15","timestamp":"2026-09-06T22:06:00+08:00","person":"elder_li","event":"卧室活动趋于安静","location":"bedroom","result":"正常休息","importance":"normal"}
+      ],
+      "user_profile": {
+        "preferred_name":{"field":"preferred_name","value":"李爷爷","confidence":1.0,"source_type":"explicit","sources":["family_registration"]},
+        "preferred_activity":{"field":"preferred_activity","value":["京剧","散步"],"confidence":0.86,"source_type":"inferred","sources":["e7n_e03","e7n_e05","e7n_e07","e7n_e11","e7n_e12"]},
+        "usual_sleep_time":{"field":"usual_sleep_time","value":"22:00左右","confidence":0.78,"source_type":"inferred","sources":["e7n_e14","e7n_e15"]},
+        "interaction_style":{"field":"interaction_style","value":"偏好语速稍慢、音量柔和的提醒","confidence":0.88,"source_type":"explicit","sources":["e7n_e10"]}
+      }
+    },
+    "child_xiaoyu": {
+      "person_id": "child_xiaoyu", "role": "child", "name": "小宇", "location": "bedroom", "status": "normal", "working_memory": [
+        {"id": "c7_w01", "timestamp": "2026-09-06T20:36:00+08:00", "kind": "activity", "content": "作业已完成，睡前选择听故事", "expires_hint": "今晚"}
+      ],
+      "episodic_memory": [
+        {"id":"c7n_e01","timestamp":"2026-08-31T07:42:00+08:00","person":"child_xiaoyu","event":"整理书包后准备上学","location":"entrance","result":"按时出门","importance":"normal"},
+        {"id":"c7n_e02","timestamp":"2026-08-31T16:58:00+08:00","person":"child_xiaoyu","event":"放学回家并向机器人报平安","location":"entrance","result":"监护人收到到家状态","importance":"normal"},
+        {"id":"c7n_e03","timestamp":"2026-08-31T19:12:00+08:00","person":"child_xiaoyu","event":"在书桌完成语文作业","location":"bedroom","result":"十九点五十五分完成","importance":"normal"},
+        {"id":"c7n_e04","timestamp":"2026-09-01T17:06:00+08:00","person":"child_xiaoyu","event":"放学后回到家中","location":"entrance","result":"状态正常","importance":"normal"},
+        {"id":"c7n_e05","timestamp":"2026-09-01T20:16:00+08:00","person":"child_xiaoyu","event":"完成作业后画了一幅小区花园","location":"living_room","result":"持续绘画二十五分钟","importance":"normal"},
+        {"id":"c7n_e06","timestamp":"2026-09-02T16:52:00+08:00","person":"child_xiaoyu","event":"按时放学回家，与李爷爷打招呼","location":"living_room","result":"家庭互动正常","importance":"normal"},
+        {"id":"c7n_e07","timestamp":"2026-09-02T19:24:00+08:00","person":"child_xiaoyu","event":"完成数学作业后搭建积木小屋","location":"living_room","result":"主动向机器人展示作品","importance":"normal"},
+        {"id":"c7n_e08","timestamp":"2026-09-03T17:11:00+08:00","person":"child_xiaoyu","event":"因值日晚于平常十分钟到家","location":"entrance","result":"提前说明，属于正常波动","importance":"normal"},
+        {"id":"c7n_e09","timestamp":"2026-09-03T19:18:00+08:00","person":"child_xiaoyu","event":"在机器人计时陪伴下完成作业","location":"bedroom","result":"二十点前完成","importance":"normal"},
+        {"id":"c7n_e10","timestamp":"2026-09-04T20:08:00+08:00","person":"child_xiaoyu","event":"选择绘画而没有玩积木","location":"living_room","result":"活动选择自然变化","importance":"low"},
+        {"id":"c7n_e11","timestamp":"2026-09-05T10:22:00+08:00","person":"child_xiaoyu","event":"周末与李爷爷一起整理客厅书架","location":"living_room","result":"家庭互动愉快","importance":"normal"},
+        {"id":"c7n_e12","timestamp":"2026-09-05T15:36:00+08:00","person":"child_xiaoyu","event":"搭积木时请机器人给出简短提示","location":"living_room","result":"在鼓励下完成模型","importance":"normal"},
+        {"id":"c7n_e13","timestamp":"2026-09-06T17:02:00+08:00","person":"child_xiaoyu","event":"外出活动后与家人回家","location":"entrance","result":"状态正常","importance":"normal"},
+        {"id":"c7n_e14","timestamp":"2026-09-06T19:44:00+08:00","person":"child_xiaoyu","event":"完成周末阅读记录","location":"bedroom","result":"作业完成","importance":"normal"},
+        {"id":"c7n_e15","timestamp":"2026-09-06T20:36:00+08:00","person":"child_xiaoyu","event":"睡前请机器人讲一个简短故事","location":"bedroom","result":"听完后准备休息","importance":"normal"}
+      ],
+      "user_profile": {
+        "preferred_name":{"field":"preferred_name","value":"小宇","confidence":1.0,"source_type":"explicit","sources":["family_registration"]},
+        "usual_home_time":{"field":"usual_home_time","value":"17:00左右","confidence":0.84,"source_type":"inferred","sources":["c7n_e02","c7n_e04","c7n_e06","c7n_e08"]},
+        "preferred_activity":{"field":"preferred_activity","value":["绘画","积木"],"confidence":0.82,"source_type":"inferred","sources":["c7n_e05","c7n_e07","c7n_e10","c7n_e12"]},
+        "homework_routine":{"field":"homework_routine","value":"晚饭后至20:00前完成作业","confidence":0.79,"source_type":"inferred","sources":["c7n_e03","c7n_e09","c7n_e14"]},
+        "interaction_style":{"field":"interaction_style","value":"喜欢简短、有鼓励性的提示","confidence":0.8,"source_type":"inferred","sources":["c7n_e09","c7n_e12"]}
+      }
+    }
+  },
+  "knowledge_base": [
+    {"id":"kb_fall","title":"跌倒应急规则","content":"疑似跌倒优先现场确认、本人触达和家属通知。","tags":["fall","safety"]},
+    {"id":"kb_door","title":"儿童门口安全规则","content":"儿童不独自为陌生访客开门，等待监护人确认。","tags":["child","door","safety"]},
+    {"id":"kb_companion","title":"低打扰陪伴原则","content":"普通陪伴尊重选择，不升级为紧急事件。","tags":["companion","preference"]}
+  ],
+  "devices": {
+    "robot":{"id":"robot","kind":"robot","online":true,"battery":78,"location":"living_room","latest_action":"充电完成","status":"ready"},
+    "watch":{"id":"watch","kind":"watch","online":true,"battery":66,"owner":"李爷爷","wearing":true},
+    "child_watch":{"id":"child_watch","kind":"watch","online":true,"battery":79,"owner":"小宇","wearing":true},
+    "phone":{"id":"phone","kind":"phone","online":true,"battery":73,"owner":"监护人"}
+  },
+  "sensors": {
+    "fall_detector":{"id":"fall_detector","label":"卧室跌倒感知器","location":"bedroom"},
+    "door_sensor":{"id":"door_sensor","label":"入口门磁","location":"entrance"},
+    "motion_sensor":{"id":"motion_sensor","label":"客厅活动传感器","location":"living_room"},
+    "watch_activity":{"id":"watch_activity","label":"老人手表活动状态","location":"wearable"},
+    "watch_geofence":{"id":"watch_geofence","label":"儿童手表安全区","location":"wearable"}
+  },
+  "environment":{"lighting":"dim","time_of_day":"night","temperature_c":23,"noise_level":"quiet","home_mode":"normal","occupancy":{"bedroom":["elder_li","child_xiaoyu"],"living_room":["robot"]},"door_state":"closed","notes":["一老一小共同居住","最近七天生活总体正常","客厅网络曾短暂波动并自行恢复"]},
+  "active_history":"family_7d_normal",
+  "active_preset":"family-history"
+}

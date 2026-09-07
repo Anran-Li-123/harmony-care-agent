@@ -79,6 +79,10 @@ export function ScenarioComposer({ options, draft, event, disabled, onGenerate, 
     <div className="ai-builder"><label htmlFor="scenario-prompt">让 AI 选择一组受控数据</label><textarea id="scenario-prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} disabled={disabled}/><button disabled={disabled || !prompt.trim()} onClick={() => onGenerate(request(true))}>✦ AI 构造场景</button></div>
     <div className="incoming-event">
       <div><span>本次输入</span><b>{event.type === "conversation" ? "用户对话" : "无对话 · 状态变化"}</b></div>
+      <div className="event-target-switch" aria-label="选择事件对象">
+        {Object.values(draft.context.people).map((person) => <button key={person.person_id} className={event.target_person_id === person.person_id ? "active" : ""} disabled={disabled} onClick={() => onEventChange({ ...event, target_person_id: person.person_id, person: person.role === "elder" ? "grandpa" : "child" })}>{person.name}</button>)}
+        <button className={event.target_person_id == null ? "active" : ""} disabled={disabled} onClick={() => onEventChange({ ...event, target_person_id: null, person: null })}>家庭环境</button>
+      </div>
       {event.type === "conversation" ? <textarea aria-label="编辑本次用户对话" value={eventText} onChange={(e) => onEventChange({ ...event, data: { ...event.data, text: e.target.value } })}/> : <p>{eventSourceText[event.source] || event.source} · {JSON.stringify(event.data)}</p>}
     </div>
   </section>;

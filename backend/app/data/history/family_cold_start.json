@@ -1,0 +1,41 @@
+{
+  "schema_version": "2.0",
+  "household": {"household_id": "family_001", "name": "李家", "household_memory": []},
+  "people": {
+    "elder_li": {
+      "person_id": "elder_li", "role": "elder", "name": "李爷爷", "location": "living_room", "status": "normal",
+      "working_memory": [], "episodic_memory": [],
+      "user_profile": {
+        "preferred_name": {"field": "preferred_name", "value": "李爷爷", "confidence": 1.0, "source_type": "explicit", "sources": ["family_registration"]},
+        "age": {"field": "age", "value": 72, "confidence": 1.0, "source_type": "admin", "sources": ["family_registration"]}
+      }
+    },
+    "child_xiaoyu": {
+      "person_id": "child_xiaoyu", "role": "child", "name": "小宇", "location": "living_room", "status": "normal",
+      "working_memory": [], "episodic_memory": [],
+      "user_profile": {
+        "preferred_name": {"field": "preferred_name", "value": "小宇", "confidence": 1.0, "source_type": "explicit", "sources": ["family_registration"]},
+        "age": {"field": "age", "value": 8, "confidence": 1.0, "source_type": "admin", "sources": ["family_registration"]}
+      }
+    }
+  },
+  "knowledge_base": [
+    {"id": "kb_fall", "title": "跌倒应急规则", "content": "跌倒或疑似跌倒时优先现场确认、本人触达与家属通知，不仅依赖模型判断。", "tags": ["fall", "safety"]},
+    {"id": "kb_door", "title": "儿童门口安全规则", "content": "儿童面对陌生访客时不独自开门，由机器人陪伴并等待监护人确认。", "tags": ["child", "door", "safety"]}
+  ],
+  "devices": {
+    "robot": {"id": "robot", "kind": "robot", "online": true, "battery": 86, "location": "living_room"},
+    "watch": {"id": "watch", "kind": "watch", "online": true, "battery": 72, "owner": "李爷爷", "wearing": true},
+    "child_watch": {"id": "child_watch", "kind": "watch", "online": true, "battery": 81, "owner": "小宇", "wearing": true},
+    "phone": {"id": "phone", "kind": "phone", "online": true, "battery": 76, "owner": "监护人"}
+  },
+  "sensors": {
+    "fall_detector": {"id": "fall_detector", "label": "卧室跌倒感知器", "location": "bedroom"},
+    "door_sensor": {"id": "door_sensor", "label": "入口门磁", "location": "entrance"},
+    "watch_activity": {"id": "watch_activity", "label": "老人手表活动状态", "location": "wearable"},
+    "watch_geofence": {"id": "watch_geofence", "label": "儿童手表安全区", "location": "wearable"}
+  },
+  "environment": {"lighting": "bright", "time_of_day": "afternoon", "temperature_c": 24, "noise_level": "quiet", "home_mode": "normal", "occupancy": {"living_room": ["elder_li", "child_xiaoyu", "robot"]}, "door_state": "closed", "notes": ["新家庭首次启用", "尚未形成生活规律画像"]},
+  "active_history": "family_cold_start",
+  "active_preset": "family-history"
+}

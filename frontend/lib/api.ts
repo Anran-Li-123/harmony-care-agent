@@ -1,4 +1,4 @@
-import type { CareEvent, Context, Decision, Preset, ScenarioDraft, ScenarioGenerationRequest, ScenarioOptions } from "./types";
+import type { CareEvent, Context, Decision, HistoryOption, Preset, ScenarioDraft, ScenarioGenerationRequest, ScenarioOptions } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
@@ -14,6 +14,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   health: () => request<{ status: string; mock_mode: boolean; model: string }>("/api/health"),
   presets: () => request<Preset[]>("/api/demo/presets"),
+  histories: () => request<HistoryOption[]>("/api/demo/histories"),
+  loadHistory: (historyId: string) => request<Context>(`/api/demo/histories/${historyId}/load`, { method: "POST" }),
   scenarioOptions: () => request<ScenarioOptions>("/api/demo/scenario-options"),
   scenario: (presetId: string) => request<ScenarioDraft>(`/api/demo/scenarios/${presetId}`),
   context: () => request<Context>("/api/context"),

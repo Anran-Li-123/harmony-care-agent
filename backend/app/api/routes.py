@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from app.agent.orchestrator import AgentOrchestrator
 from app.config import get_settings
 from app.data.presets import PRESET_METADATA, preset_context
+from app.data.history_loader import history_context, history_options
 from app.data.scenarios import compose_scenario, draft_from_preset, options_payload
 from app.schemas.models import (
     ContextState,
@@ -40,6 +41,27 @@ def health() -> dict[str, str | bool]:
 @router.get("/demo/presets")
 def presets() -> list[dict[str, str]]:
     return PRESET_METADATA
+
+
+@router.get("/demo/histories")
+def histories() -> list[dict[str, str | int]]:
+    return history_options()
+
+
+@router.get("/demo/histories/{history_id}", response_model=ContextState)
+def get_history(history_id: str) -> ContextState:
+    try:
+        return history_context(history_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/demo/histories/{history_id}/load", response_model=ContextState)
+def load_history(history_id: str) -> ContextState:
+    try:
+        return demo_store.replace_context(history_context(history_id))
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/demo/scenario-options", response_model=ScenarioOptions)

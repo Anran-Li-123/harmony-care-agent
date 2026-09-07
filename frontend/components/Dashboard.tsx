@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import type { CareEvent, Context, Decision, Preset, ScenarioDraft, ScenarioGenerationRequest, ScenarioOptions } from "@/lib/types";
+import type { CareEvent, Context, Decision, HistoryOption, Preset, ScenarioDraft, ScenarioGenerationRequest, ScenarioOptions } from "@/lib/types";
 import { SiteHeader } from "./SiteHeader";
 import { ScenarioComposer } from "./ScenarioComposer";
 import { SmartHomeScene } from "./SmartHomeScene";
@@ -11,6 +11,8 @@ import { DevicePanel } from "./DevicePanel";
 import { DecisionPanel } from "./DecisionPanel";
 import { ContextPanel } from "./ContextPanel";
 import { MemoryEvolution } from "./MemoryEvolution";
+import { HistorySelector } from "./HistorySelector";
+import { HouseholdEventSelector } from "./HouseholdEventSelector";
 
 type PlaybackStatus = "idle" | "playing" | "paused" | "complete";
 const finalStage = 7;
@@ -22,6 +24,7 @@ export function Dashboard() {
   const [draft, setDraft] = useState<ScenarioDraft | null>(null);
   const [event, setEvent] = useState<CareEvent | null>(null);
   const [presets, setPresets] = useState<Preset[]>([]);
+  const [histories, setHistories] = useState<HistoryOption[]>([]);
   const [options, setOptions] = useState<ScenarioOptions | null>(null);
   const [activePreset, setActivePreset] = useState("night-fall");
   const [decision, setDecision] = useState<Decision | null>(null);
@@ -51,10 +54,15 @@ export function Dashboard() {
 
   useEffect(() => { void (async () => {
     try {
-      const [loadedPresets, loadedOptions, initial, health] = await Promise.all([api.presets(), api.scenarioOptions(), api.scenario("night-fall"), api.health()]);
-      setPresets(loadedPresets); setOptions(loadedOptions); setRuntime(health); applyDraft(initial);
+      const [loadedPresets, loadedOptions, legacyDraft, health, loadedHistories] = await Promise.all([api.presets(), api.scenarioOptions(), api.scenario("night-fall"), api.health(), api.histories()]);
+      const initial = await api.loadHistory("family_30d_stable");
+      setPresets(loadedPresets); setOptions(loadedOptions); setRuntime(health); setHistories(loadedHistories);
+      setDraft({ ...legacyDraft, title: "30天稳定家庭", description: "固定家庭历史已加载，请另行选择本次新事件。", context: initial });
+      setContext(initial); setActivePreset(initial.active_preset);
+      setEvent({ type: "sensor", source: "fall_detector", target_person_id: "elder_li", person: "grandpa", data: { detected: true, location: "bedroom" } });
+      resetPlayback();
     } catch (err) { setError(err instanceof Error ? err.message : "后端不可用。请启动 FastAPI 服务。"); }
-  })(); }, [applyDraft]);
+  })(); }, [resetPlayback]);
 
   useEffect(() => {
     if (playback !== "playing") return;
@@ -76,6 +84,21 @@ export function Dashboard() {
     } catch (err) { setError(err instanceof Error ? err.message : "加载场景失败"); }
     finally { setBusy(false); }
   };
+
+  const loadHistory = async (historyId: string) => {
+    try {
+      setBusy(true); setError(""); setNotice("");
+      const next = await api.loadHistory(historyId);
+      setContext(next); setActivePreset(next.active_preset);
+      setDraft((current) => current ? { ...current, title: histories.find((item) => item.id === historyId)?.label || historyId, description: "固定家庭历史已加载，请另行选择本次新事件。", context: next } : current);
+      resetPlayback(); setNotice(`已加载家庭历史：${histories.find((item) => item.id === historyId)?.label || historyId}。未自动运行事件。`);
+    } catch (err) { setError(err instanceof Error ? err.message : "加载家庭历史失败"); }
+    finally { setBusy(false); }
+  };
+
+  const changeEvent = useCallback((next: CareEvent) => {
+    setEvent(next); resetPlayback(); setNotice("新事件已准备；家庭历史保持不变。");
+  }, [resetPlayback]);
 
   const generateScenario = async (request: ScenarioGenerationRequest) => {
     try {
@@ -149,13 +172,15 @@ export function Dashboard() {
         <div><span className="section-kicker">在线实验室</span><h1>家庭看护 Agent 场景模拟</h1><p>选择示例或组合数据，运行后逐步观察“感知—判断—协同—记忆”的变化。</p></div>
         <div className="lab-runtime"><span><i/>{runtime.mock_mode ? "稳定演示模式" : "真实模型模式"}</span><small>{runtime.model}</small></div>
       </header>
-      <section className="preset-station" aria-label="完整示例">
+      <HistorySelector options={histories} active={context.active_history} disabled={busy || playback === "playing"} onSelect={loadHistory}/>
+      <details className="legacy-presets glass"><summary>旧版完整示例 / Advanced</summary><section className="preset-station" aria-label="完整示例">
         <div className="preset-station-head"><span>八个完整示例</span><small>选择后会清空上一次动画状态</small></div>
         <div className="preset-list">{presets.map((preset) => <button key={preset.id} className={`${activePreset === preset.id ? "selected" : ""} preset-${preset.tone}`} disabled={busy} onClick={() => loadPreset(preset.id)}><span>{preset.name}</span><small>{preset.description}</small></button>)}</div>
-      </section>
+      </section></details>
       {(notice || error) && <div className={`notice lab-notice ${error ? "error" : ""}`} role="status">{error || notice}<button aria-label="关闭提示" onClick={() => { setNotice(""); setError(""); }}>×</button></div>}
+      <ContextPanel context={context} event={event} onSave={saveContext} onUpload={upload}/>
       <div className="lab-workspace">
-        <ScenarioComposer options={options} draft={draft} event={event} disabled={busy || playback === "playing"} onGenerate={generateScenario} onEventChange={setEvent}/>
+        <div className="lab-input-column"><HouseholdEventSelector context={context} event={event} disabled={busy || playback === "playing"} onChange={changeEvent}/><details className="experimental-builder"><summary>Experimental · 旧版场景构造</summary><ScenarioComposer options={options} draft={draft} event={event} disabled={busy || playback === "playing"} onGenerate={generateScenario} onEventChange={changeEvent}/></details></div>
         <section className="lab-center">
           <SmartHomeScene context={context} resultContext={sceneResult} decision={decision} stage={stage} playback={playback}/>
           <Pipeline active={stage} status={playback} speed={speed} disabled={busy} onToggle={() => setPlayback((current) => current === "playing" ? "paused" : current === "paused" ? "playing" : current)} onStep={step} onReplay={replay} onSpeed={setSpeed}/>
@@ -167,7 +192,6 @@ export function Dashboard() {
         </aside>
       </div>
       <MemoryEvolution beforeContext={beforeContext || context} context={context} decision={decision} stage={stage}/>
-      <ContextPanel context={context} event={event} onSave={saveContext} onUpload={upload}/>
       <footer className="lab-footer">演示数据均为虚构 · 系统不构成医疗诊断、治疗建议或真实看护承诺</footer>
     </main>
   </div>;

@@ -5,7 +5,9 @@ from enum import Enum
 from typing import Any, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+from app.schemas.compatibility import legacy_context_to_household, legacy_event_to_target, legacy_person_id
 
 
 def now_iso() -> str:
@@ -101,7 +103,29 @@ class KnowledgeItem(BaseModel):
     tags: list[str] = Field(default_factory=list)
 
 
+class HouseholdContext(BaseModel):
+    household_id: str = "family_001"
+    name: str = "示例家庭"
+    household_memory: list[WorkingMemoryItem] = Field(default_factory=list)
+
+
+class PersonContext(BaseModel):
+    person_id: str
+    role: Literal["elder", "child"]
+    name: str
+    location: str | None = None
+    status: str = "normal"
+    working_memory: list[WorkingMemoryItem] = Field(default_factory=list)
+    episodic_memory: list[Episode] = Field(default_factory=list)
+    user_profile: dict[str, ProfileEntry] = Field(default_factory=dict)
+
+
 class ContextState(BaseModel):
+    schema_version: Literal["2.0"] = "2.0"
+    household: HouseholdContext = Field(default_factory=HouseholdContext)
+    people: dict[str, PersonContext] = Field(default_factory=dict)
+    active_history: str | None = None
+    # v1 fields remain as a compatibility projection for old clients/uploads.
     working_memory: list[WorkingMemoryItem] = Field(default_factory=list)
     episodic_memory: list[Episode] = Field(default_factory=list)
     user_profile: dict[str, ProfileEntry] = Field(default_factory=dict)
@@ -111,14 +135,53 @@ class ContextState(BaseModel):
     environment: EnvironmentState = Field(default_factory=EnvironmentState)
     active_preset: str = "new-user"
 
+    @model_validator(mode="before")
+    @classmethod
+    def upgrade_legacy_context(cls, value: Any) -> Any:
+        return legacy_context_to_household(value)
+
+    @model_validator(mode="after")
+    def validate_household_people(self) -> "ContextState":
+        for key, person in self.people.items():
+            if key != person.person_id:
+                raise ValueError(f"people key {key!r} 必须与 person_id 一致")
+        roles = {person.role for person in self.people.values()}
+        if not {"elder", "child"}.issubset(roles):
+            raise ValueError("家庭 Context 必须同时包含至少一名老人和一名儿童")
+        if not self.working_memory and not self.episodic_memory and not self.user_profile:
+            elder = next((person for person in self.people.values() if person.role == "elder"), None)
+            if elder:
+                self.sync_legacy_projection(elder.person_id)
+        return self
+
+    def target_person(self, person_id: str | None) -> PersonContext | None:
+        return self.people.get(legacy_person_id(person_id) or "")
+
+    def sync_legacy_projection(self, person_id: str | None) -> None:
+        person = self.target_person(person_id)
+        if person is None:
+            self.working_memory = []
+            self.episodic_memory = []
+            self.user_profile = {}
+            return
+        self.working_memory = list(person.working_memory)
+        self.episodic_memory = list(person.episodic_memory)
+        self.user_profile = dict(person.user_profile)
+
 
 class CareEvent(BaseModel):
     id: str = Field(default_factory=lambda: f"event_{uuid4().hex[:8]}")
     type: Literal["sensor", "conversation", "device", "environment", "manual"]
     source: str
     timestamp: str = Field(default_factory=now_iso)
-    person: str = "unknown"
+    target_person_id: str | None = None
+    person: str | None = None
     data: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="before")
+    @classmethod
+    def upgrade_legacy_person(cls, value: Any) -> Any:
+        return legacy_event_to_target(value)
 
 
 class DeviceAction(BaseModel):
@@ -213,7 +276,8 @@ class ScenarioGenerationRequest(BaseModel):
 
 
 class ScenarioDraft(BaseModel):
-    schema_version: Literal["1.0"] = "1.0"
+    # Existing scenario endpoints keep emitting 1.0; v2 envelopes are accepted for new household data.
+    schema_version: Literal["1.0", "2.0"] = "1.0"
     id: str = Field(default_factory=lambda: f"scenario_{uuid4().hex[:8]}")
     title: str
     description: str

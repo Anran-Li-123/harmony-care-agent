@@ -6,6 +6,8 @@ os.environ["MOCK_MODE"] = "true"
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.data.history_loader import history_context
+from app.schemas.models import ContextState
 
 
 client = TestClient(app)
@@ -133,3 +135,111 @@ def test_versioned_scenario_upload(tmp_path):
     assert response.status_code == 200
     assert response.json()["scenario"]["source"] == "upload"
     assert response.json()["event"]["type"] == "conversation"
+
+
+def test_v2_context_contains_elder_and_child():
+    context = client.post("/api/reset?preset_id=new-user").json()
+    assert context["schema_version"] == "2.0"
+    assert {person["role"] for person in context["people"].values()} >= {"elder", "child"}
+    assert context["people"]["elder_li"]["name"] == "李爷爷"
+    assert context["people"]["child_xiaoyu"]["name"] == "小宇"
+
+
+def test_v1_context_is_upgraded_by_central_compatibility_layer():
+    legacy = {
+        "working_memory": [],
+        "episodic_memory": [],
+        "user_profile": {"preferred_name": {"field": "preferred_name", "value": "小安", "confidence": 1, "source_type": "explicit", "sources": ["family_setup"]}},
+        "knowledge_base": [],
+        "devices": {},
+        "sensors": {},
+        "environment": {"occupancy": {"living_room": ["child"]}},
+        "active_preset": "child-door",
+    }
+    context = ContextState.model_validate(legacy)
+    assert context.schema_version == "2.0"
+    assert context.people["child_xiaoyu"].user_profile["preferred_name"].value == "小安"
+    assert context.people["elder_li"].role == "elder"
+
+
+def test_elder_event_only_updates_elder_memory():
+    before = client.post("/api/reset?preset_id=new-user").json()
+    child_before = before["people"]["child_xiaoyu"]
+    result = client.post(
+        "/api/events/trigger",
+        json={"event": {"type": "conversation", "source": "user_voice", "target_person_id": "elder_li", "data": {"text": "今天想聊聊天。"}}},
+    ).json()["context"]
+    assert len(result["people"]["elder_li"]["working_memory"]) == 1
+    assert result["people"]["child_xiaoyu"]["working_memory"] == child_before["working_memory"]
+    assert result["people"]["child_xiaoyu"]["episodic_memory"] == child_before["episodic_memory"]
+
+
+def test_child_event_only_updates_child_memory():
+    before = client.post("/api/reset?preset_id=child-door").json()
+    elder_before = before["people"]["elder_li"]
+    result = client.post(
+        "/api/events/trigger",
+        json={"event": {"type": "conversation", "source": "user_voice", "target_person_id": "child_xiaoyu", "data": {"text": "我已经到家了。"}}},
+    ).json()["context"]
+    assert len(result["people"]["child_xiaoyu"]["working_memory"]) == 1
+    assert result["people"]["elder_li"]["working_memory"] == elder_before["working_memory"]
+    assert result["people"]["elder_li"]["episodic_memory"] == elder_before["episodic_memory"]
+
+
+def test_household_event_does_not_modify_any_person_profile():
+    before = client.post("/api/reset?preset_id=companion").json()
+    profiles_before = {key: value["user_profile"] for key, value in before["people"].items()}
+    result = client.post(
+        "/api/events/trigger",
+        json={"event": {"type": "environment", "source": "smoke_detector", "target_person_id": None, "data": {"status": "normal"}}},
+    ).json()["context"]
+    assert {key: value["user_profile"] for key, value in result["people"].items()} == profiles_before
+    assert len(result["household"]["household_memory"]) == 1
+
+
+def test_all_legacy_presets_still_load_and_run():
+    for preset_id in ["new-user", "night-fall", "elder-watch-inactive", "child-door", "child-safe-zone", "companion", "habit-change", "device-offline"]:
+        scenario = client.get(f"/api/demo/scenarios/{preset_id}")
+        assert scenario.status_code == 200
+        payload = scenario.json()
+        assert payload["context"]["schema_version"] == "2.0"
+        assert {person["role"] for person in payload["context"]["people"].values()} >= {"elder", "child"}
+        result = client.post("/api/events/trigger", json={"event": payload["event"]})
+        assert result.status_code == 200
+
+
+def test_static_household_histories_have_expected_scale_and_people():
+    expected_counts = {"family_cold_start": 0, "family_7d_normal": 30, "family_30d_stable": 52}
+    response = client.get("/api/demo/histories")
+    assert response.status_code == 200
+    assert {item["id"]: item["episode_count"] for item in response.json()} == expected_counts
+    for history_id, count in expected_counts.items():
+        context = history_context(history_id)
+        assert sum(len(person.episodic_memory) for person in context.people.values()) == count
+        assert {person.role for person in context.people.values()} >= {"elder", "child"}
+
+
+def test_static_history_profiles_only_reference_existing_episodes():
+    for history_id in ["family_7d_normal", "family_30d_stable"]:
+        context = history_context(history_id)
+        for person in context.people.values():
+            episode_ids = {episode.id for episode in person.episodic_memory}
+            for profile in person.user_profile.values():
+                if profile.source_type == "inferred":
+                    assert profile.sources
+                    assert set(profile.sources) <= episode_ids
+
+
+def test_loading_history_does_not_run_an_event_and_keeps_event_switchable():
+    loaded = client.post("/api/demo/histories/family_30d_stable/load")
+    assert loaded.status_code == 200
+    before = loaded.json()
+    assert before["active_history"] == "family_30d_stable"
+    assert before["devices"]["robot"]["latest_action"] == "自动回充完成"
+    elder_result = client.post("/api/events/trigger", json={"event": {"type": "conversation", "source": "user_voice", "target_person_id": "elder_li", "data": {"text": "今天有点无聊。"}}})
+    assert elder_result.status_code == 200
+    child_before = elder_result.json()["context"]["people"]["child_xiaoyu"]["episodic_memory"]
+    child_result = client.post("/api/events/trigger", json={"event": {"type": "conversation", "source": "user_voice", "target_person_id": "child_xiaoyu", "data": {"text": "陪我聊一会儿。"}}})
+    assert child_result.status_code == 200
+    assert child_result.json()["context"]["active_history"] == "family_30d_stable"
+    assert len(child_result.json()["context"]["people"]["child_xiaoyu"]["episodic_memory"]) == len(child_before) + 1
