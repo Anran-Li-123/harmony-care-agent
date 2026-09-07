@@ -31,7 +31,7 @@ def test_scenario_options_and_structured_generation():
     body = generated.json()
     assert body["schema_version"] == "1.0"
     assert body["event"]["source"] == "door_sensor"
-    assert body["context"]["devices"]["watch"]["owner"] == "小安"
+    assert body["context"]["devices"]["child_watch"]["owner_person_id"] == "child_xiaoyu"
 
 
 def test_incompatible_scenario_combination_is_rejected():
@@ -62,7 +62,7 @@ def test_night_fall_routes_actions_and_memory():
     assert result.status_code == 200
     body = result.json()
     assert body["decision"]["risk_level"] == "high"
-    assert {action["target"] for action in body["decision"]["actions"]} == {"robot", "watch", "phone"}
+    assert {action["target"] for action in body["decision"]["actions"] if action["target"]} == {"robot", "watch", "phone"}
     assert body["context"]["devices"]["robot"]["location"] == "bedroom"
     assert len(body["context"]["episodic_memory"]) == 2
     assert body["context"]["devices"]["watch"]["latest_notification"] == "检测到异常，请确认您的状态"
@@ -122,7 +122,7 @@ def test_device_offline_uses_available_terminals():
     assert result.status_code == 200
     body = result.json()
     assert body["decision"]["risk_level"] == "medium"
-    assert {action["target"] for action in body["decision"]["actions"]} == {"robot", "phone"}
+    assert {action["target"] for action in body["decision"]["actions"] if action["target"]} == {"robot", "phone"}
     assert body["context"]["devices"]["watch"]["online"] is False
 
 

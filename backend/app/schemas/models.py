@@ -33,6 +33,15 @@ class ActionTarget(str, Enum):
     PHONE = "phone"
 
 
+class DeviceType(str, Enum):
+    ROBOT = "robot"
+    WATCH = "watch"
+    PHONE = "phone"
+    LIGHT = "light"
+    DOOR_LOCK = "door_lock"
+    SMART_SCREEN = "smart_screen"
+
+
 class ProfileEntry(BaseModel):
     field: str
     value: Any
@@ -62,10 +71,27 @@ class Episode(BaseModel):
     importance: Literal["low", "normal", "high"] = "normal"
 
 
-class DeviceState(BaseModel):
-    id: str
-    kind: ActionTarget
+DEVICE_CAPABILITIES: dict[str, list[str]] = {
+    "robot": ["navigate_to", "speak", "observe", "follow", "wait", "play_audio"],
+    "watch": ["vibrate", "show_message", "request_confirmation"],
+    "phone": ["push_notification", "request_confirmation", "show_status"],
+    "light": ["switch", "set_brightness"],
+    "door_lock": ["lock", "get_status"],
+    "smart_screen": ["show_message", "display_status", "start_call"],
+}
+
+
+class HarmonyDevice(BaseModel):
+    device_id: str
+    device_type: DeviceType
+    name: str
     online: bool = True
+    capabilities: list[str] = Field(default_factory=list)
+    state: dict[str, Any] = Field(default_factory=dict)
+    owner_person_id: str | None = None
+    # Compatibility fields used by v1 Context and the existing UI.
+    id: str
+    kind: DeviceType
     battery: int = Field(default=100, ge=0, le=100)
     location: str | None = None
     owner: str | None = None
@@ -74,6 +100,48 @@ class DeviceState(BaseModel):
     status: str = "ready"
     speech: str | None = None
     latest_notification: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def upgrade_legacy_device(cls, value: Any) -> Any:
+        if not isinstance(value, dict):
+            return value
+        upgraded = dict(value)
+        upgraded.setdefault("device_id", upgraded.get("id"))
+        upgraded.setdefault("id", upgraded.get("device_id"))
+        upgraded.setdefault("device_type", upgraded.get("kind"))
+        upgraded.setdefault("kind", upgraded.get("device_type"))
+        raw_device_type = upgraded.get("device_type", "")
+        device_type = raw_device_type.value if isinstance(raw_device_type, DeviceType) else str(raw_device_type)
+        upgraded.setdefault("name", upgraded.get("id") or device_type)
+        upgraded.setdefault("capabilities", list(DEVICE_CAPABILITIES.get(device_type, [])))
+        owner = upgraded.get("owner")
+        if not upgraded.get("owner_person_id") and owner in {"李爷爷", "李建国"}:
+            upgraded["owner_person_id"] = "elder_li"
+        if not upgraded.get("owner_person_id") and owner in {"小宇", "小安"}:
+            upgraded["owner_person_id"] = "child_xiaoyu"
+        return upgraded
+
+    @model_validator(mode="after")
+    def populate_semantic_state(self) -> "HarmonyDevice":
+        self.state.setdefault("status", self.status)
+        self.state.setdefault("latest_action", self.latest_action)
+        if self.location is not None:
+            self.state.setdefault("location", self.location)
+        if self.device_type in {DeviceType.WATCH, DeviceType.PHONE, DeviceType.ROBOT}:
+            self.state.setdefault("battery", self.battery)
+        if self.device_type == DeviceType.LIGHT:
+            self.state.setdefault("power", "off")
+            self.state.setdefault("brightness", 0)
+        elif self.device_type == DeviceType.DOOR_LOCK:
+            self.state.setdefault("locked", True)
+        elif self.device_type == DeviceType.SMART_SCREEN:
+            self.state.setdefault("display", "idle")
+        return self
+
+
+# Existing builders/imports keep working while Context now exposes HarmonyDevice.
+DeviceState = HarmonyDevice
 
 
 class SensorState(BaseModel):
@@ -210,9 +278,11 @@ class RoomWorldState(BaseModel):
 class DeviceWorldState(BaseModel):
     device_id: str
     device_type: str
+    name: str
     location: str | None = None
     online: bool = True
     status: str = "ready"
+    state: dict[str, Any] = Field(default_factory=dict)
 
 
 class SensorWorldState(BaseModel):
@@ -249,12 +319,45 @@ class WorldState(BaseModel):
     risk_areas: list[RiskArea] = Field(default_factory=list)
 
 
-class DeviceAction(BaseModel):
-    target: ActionTarget
-    action: str
+class ActionIntent(BaseModel):
+    capability: str
     parameters: dict[str, Any] = Field(default_factory=dict)
     priority: Priority = Priority.NORMAL
+    reason: str = ""
+    target_device_id: str | None = None
+    device_type: DeviceType | None = None
+    location: str | None = None
+    target_person_id: str | None = None
+
+
+class DeviceAction(BaseModel):
+    target_device_id: str | None = None
+    capability: str | None = None
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    priority: Priority = Priority.NORMAL
+    reason: str = ""
+    # v1 fields remain accepted; resolution is centralized in devices.compatibility.
+    target: ActionTarget | None = None
+    action: str | None = None
     rationale: str = ""
+
+    @model_validator(mode="after")
+    def validate_action_shape(self) -> "DeviceAction":
+        if not ((self.target_device_id and self.capability) or (self.target and self.action)):
+            raise ValueError("DeviceAction 必须提供 v2 device/capability 或 v1 target/action")
+        if not self.reason and self.rationale:
+            self.reason = self.rationale
+        if not self.rationale and self.reason:
+            self.rationale = self.reason
+        return self
+
+
+class DeviceExecutionResult(BaseModel):
+    device_id: str
+    capability: str
+    success: bool
+    message: str
+    resulting_state: dict[str, Any] = Field(default_factory=dict)
 
 
 class MemoryCandidate(BaseModel):
@@ -297,6 +400,7 @@ class AgentDecision(BaseModel):
     evidence: list[str] = Field(default_factory=list)
     retrieved_knowledge: list[str] = Field(default_factory=list)
     actions: list[DeviceAction] = Field(default_factory=list)
+    execution_results: list[DeviceExecutionResult] = Field(default_factory=list)
     memory_updates: list[MemoryCandidate] = Field(default_factory=list)
     profile_candidates: list[ProfileCandidate] = Field(default_factory=list)
     profile_changes: list[ProfileChange] = Field(default_factory=list)

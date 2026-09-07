@@ -35,7 +35,7 @@ class MemoryExtractor:
         person.working_memory = person.working_memory[-6:]
         if any(item.type == "episodic" for item in decision.memory_updates):
             person.episodic_memory.append(
-                Episode(person=person.person_id, event=summary, location=str(event.data.get("location", "unknown")), actions=[a.action for a in decision.actions], result=decision.summary, importance="high" if decision.risk_level.value == "high" else "normal")
+                Episode(person=person.person_id, event=summary, location=str(event.data.get("location", "unknown")), actions=[a.capability or a.action or "unknown" for a in decision.actions], result=decision.summary, importance="high" if decision.risk_level.value == "high" else "normal")
             )
         context.sync_legacy_projection(person.person_id)
         return person.episodic_memory[-1].id if person.episodic_memory else ""

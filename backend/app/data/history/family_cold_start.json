@@ -24,10 +24,14 @@
     {"id": "kb_door", "title": "儿童门口安全规则", "content": "儿童面对陌生访客时不独自开门，由机器人陪伴并等待监护人确认。", "tags": ["child", "door", "safety"]}
   ],
   "devices": {
-    "robot": {"id": "robot", "kind": "robot", "online": true, "battery": 86, "location": "living_room"},
-    "watch": {"id": "watch", "kind": "watch", "online": true, "battery": 72, "owner": "李爷爷", "wearing": true},
-    "child_watch": {"id": "child_watch", "kind": "watch", "online": true, "battery": 81, "owner": "小宇", "wearing": true},
-    "phone": {"id": "phone", "kind": "phone", "online": true, "battery": 76, "owner": "监护人"}
+    "robot": {"device_id":"robot_01","device_type":"robot","name":"陪伴机器人","online":true,"location":"living_room","capabilities":["navigate_to","speak","observe","follow","wait","play_audio"],"state":{"status":"ready","battery":86}},
+    "watch": {"device_id":"elder_watch_01","device_type":"watch","name":"老人手表","online":true,"owner_person_id":"elder_li","owner":"李爷爷","wearing":true,"battery":72,"capabilities":["vibrate","show_message","request_confirmation"],"state":{"status":"ready","battery":72}},
+    "child_watch": {"device_id":"child_watch_01","device_type":"watch","name":"儿童手表","online":true,"owner_person_id":"child_xiaoyu","owner":"小宇","wearing":true,"battery":81,"capabilities":["vibrate","show_message","request_confirmation"],"state":{"status":"ready","battery":81}},
+    "phone": {"device_id":"guardian_phone_01","device_type":"phone","name":"监护人手机","online":true,"owner_person_id":"guardian","owner":"监护人","battery":76,"capabilities":["push_notification","request_confirmation","show_status"],"state":{"status":"ready","battery":76}},
+    "bedroom_light_01": {"device_id":"bedroom_light_01","device_type":"light","name":"卧室灯","location":"bedroom","online":true,"capabilities":["switch","set_brightness"],"state":{"power":"off","brightness":0}},
+    "hallway_light_01": {"device_id":"hallway_light_01","device_type":"light","name":"通道灯","location":"entrance","online":true,"capabilities":["switch","set_brightness"],"state":{"power":"off","brightness":0}},
+    "door_lock_01": {"device_id":"door_lock_01","device_type":"door_lock","name":"玄关门锁","location":"entrance","online":true,"capabilities":["lock","get_status"],"state":{"locked":true}},
+    "smart_screen_01": {"device_id":"smart_screen_01","device_type":"smart_screen","name":"客厅智慧屏","location":"living_room","online":true,"capabilities":["show_message","display_status","start_call"],"state":{"display":"idle"}}
   },
   "sensors": {
     "fall_detector": {"id": "fall_detector", "label": "卧室跌倒感知器", "location": "bedroom"},

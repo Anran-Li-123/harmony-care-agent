@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from app.data.presets import BASE_KNOWLEDGE, PRESET_METADATA, preset_context, preset_event
+from app.data.presets import BASE_KNOWLEDGE, PRESET_METADATA, _devices, preset_context, preset_event
 from app.schemas.models import (
     CareEvent,
     ContextState,
-    DeviceState,
     EnvironmentState,
     Episode,
     ProfileEntry,
@@ -103,15 +102,10 @@ def _lookup(options: list[ScenarioOption], option_id: str, persona: str) -> Scen
 
 def _base_context(persona: str) -> ContextState:
     person = "grandpa" if persona == "elder" else "child"
-    owner = "李爷爷" if persona == "elder" else "小安"
-    return ContextState(
+    context = ContextState(
         active_preset="custom",
         knowledge_base=deepcopy(BASE_KNOWLEDGE),
-        devices={
-            "robot": DeviceState(id="robot", kind="robot", online=True, battery=82, location="living_room"),
-            "watch": DeviceState(id="watch", kind="watch", online=True, battery=68, wearing=True, owner=owner),
-            "phone": DeviceState(id="phone", kind="phone", online=True, battery=74, owner="家属"),
-        },
+        devices=_devices("living_room"),
         sensors={
             "fall_detector": SensorState(id="fall_detector", label="跌倒感知器", location="bedroom"),
             "door_sensor": SensorState(id="door_sensor", label="门磁", location="entrance"),
@@ -126,6 +120,7 @@ def _base_context(persona: str) -> ContextState:
             notes=["组合生成的演示场景"],
         ),
     )
+    return context
 
 
 def _apply_memory(context: ContextState, persona: str, memory_pack: str) -> None:

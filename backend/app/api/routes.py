@@ -7,6 +7,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import ValidationError
 
 from app.agent.orchestrator import AgentOrchestrator
+from app.devices.registry import DeviceRegistry
 from app.config import get_settings
 from app.data.presets import PRESET_METADATA, preset_context
 from app.data.history_loader import history_context, history_options
@@ -172,9 +173,12 @@ def trigger_event(request: TriggerRequest) -> TriggerResponse:
     if event.source in state.sensors:
         state.sensors[event.source].status = "triggered"
         state.sensors[event.source].value = event.data
-    if event.type == "device" and event.source in state.devices and "online" in event.data:
-        state.devices[event.source].online = bool(event.data["online"])
-        state.devices[event.source].status = "ready" if event.data["online"] else "offline"
+    if event.type == "device" and "online" in event.data:
+        device = DeviceRegistry(state.devices).for_event_source(event.source, event.target_person_id)
+        if device:
+            device.online = bool(event.data["online"])
+            device.status = "ready" if event.data["online"] else "offline"
+            device.state["status"] = device.status
     if event.source == "door_sensor" and event.data.get("open"):
         state.environment.door_state = "open"
     decision = current_orchestrator().run(state, event)

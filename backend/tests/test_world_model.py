@@ -93,4 +93,4 @@ def test_agent_response_contains_world_state_and_keeps_existing_fall_flow():
     body = response.json()
     assert body["decision"]["world_state"]["people"]["elder_li"]["status"] == "suspected_fall"
     assert body["decision"]["risk_level"] == "high"
-    assert {action["target"] for action in body["decision"]["actions"]} == {"robot", "watch", "phone"}
+    assert {action["target"] for action in body["decision"]["actions"] if action["target"]} == {"robot", "watch", "phone"}

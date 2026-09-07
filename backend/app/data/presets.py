@@ -50,9 +50,14 @@ BASE_KNOWLEDGE = [
 
 def _devices(robot_location: str = "living_room") -> dict[str, DeviceState]:
     return {
-        "robot": DeviceState(id="robot", kind="robot", online=True, battery=82, location=robot_location),
-        "watch": DeviceState(id="watch", kind="watch", online=True, battery=68, wearing=True, owner="李爷爷"),
-        "phone": DeviceState(id="phone", kind="phone", online=True, battery=74, owner="家属"),
+        "robot": DeviceState(device_id="robot_01", device_type="robot", name="陪伴机器人", online=True, battery=82, location=robot_location),
+        "watch": DeviceState(device_id="elder_watch_01", device_type="watch", name="老人手表", online=True, battery=68, wearing=True, owner="李爷爷", owner_person_id="elder_li"),
+        "child_watch": DeviceState(device_id="child_watch_01", device_type="watch", name="儿童手表", online=True, battery=81, wearing=True, owner="小宇", owner_person_id="child_xiaoyu"),
+        "phone": DeviceState(device_id="guardian_phone_01", device_type="phone", name="监护人手机", online=True, battery=74, owner="家属", owner_person_id="guardian"),
+        "bedroom_light_01": DeviceState(device_id="bedroom_light_01", device_type="light", name="卧室灯", online=True, location="bedroom", state={"power": "off", "brightness": 0}),
+        "hallway_light_01": DeviceState(device_id="hallway_light_01", device_type="light", name="通道灯", online=True, location="entrance", state={"power": "off", "brightness": 0}),
+        "door_lock_01": DeviceState(device_id="door_lock_01", device_type="door_lock", name="玄关门锁", online=True, location="entrance", state={"locked": True}),
+        "smart_screen_01": DeviceState(device_id="smart_screen_01", device_type="smart_screen", name="客厅智慧屏", online=True, location="living_room", state={"display": "idle"}),
     }
 
 
@@ -105,7 +110,7 @@ def night_fall_context() -> ContextState:
 
 
 def child_door_context() -> ContextState:
-    state = ContextState(
+    return ContextState(
         active_preset="child-door",
         knowledge_base=deepcopy(BASE_KNOWLEDGE),
         devices=_devices("living_room"),
@@ -122,8 +127,6 @@ def child_door_context() -> ContextState:
             "guardian_status": ProfileEntry(field="guardian_status", value="家长外出", confidence=1, source_type="admin", sources=["family_setup"]),
         },
     )
-    state.devices["watch"].owner = "小安"
-    return state
 
 
 def companion_context() -> ContextState:

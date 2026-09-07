@@ -45,9 +45,11 @@ class WorldModelBuilder:
             key: DeviceWorldState(
                 device_id=device.id,
                 device_type=device.kind.value,
+                name=device.name,
                 location=device.location,
                 online=device.online,
                 status=device.status,
+                state=dict(device.state),
             )
             for key, device in context.devices.items()
             if key != "robot"

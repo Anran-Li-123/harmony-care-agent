@@ -17,6 +17,10 @@ function occupant(context: Context, id: string) {
 export function SmartHomeScene({ context, resultContext, decision, stage, playback }: Props) {
   const visualContext = resultContext || context;
   const robot = visualContext.devices.robot;
+  const bedroomLight = visualContext.devices.bedroom_light_01;
+  const hallwayLight = visualContext.devices.hallway_light_01;
+  const doorLock = visualContext.devices.door_lock_01;
+  const smartScreen = visualContext.devices.smart_screen_01;
   const robotPoint = locations[robot?.location || "living_room"];
   const fall = stage >= 1 && visualContext.sensors.fall_detector?.status === "triggered";
   const door = stage >= 1 && visualContext.sensors.door_sensor?.status === "triggered";
@@ -38,6 +42,10 @@ export function SmartHomeScene({ context, resultContext, decision, stage, playba
       <div className={`sensor-marker fall-marker ${fall ? "alert" : ""}`}><span/><b>跌倒感知</b></div>
       <div className={`sensor-marker door-marker ${door ? "alert" : ""}`}><span/><b>门磁</b></div>
       <div className={`sensor-marker watch-marker ${watchAlert ? "alert" : ""}`}><span/><b>手表状态</b></div>
+      <div className={`home-device-marker bedroom-light ${bedroomLight?.state.power === "on" ? "active" : ""}`}><b>灯</b><small>{bedroomLight?.state.power === "on" ? "卧室灯已开" : "卧室灯关闭"}</small></div>
+      <div className={`home-device-marker hallway-light ${hallwayLight?.state.power === "on" ? "active" : ""}`}><b>灯</b><small>{hallwayLight?.state.power === "on" ? "通道灯已开" : "通道灯关闭"}</small></div>
+      <div className={`home-device-marker door-lock ${doorLock?.state.locked === false ? "warning" : "active"}`}><b>锁</b><small>{doorLock?.state.locked === false ? "门锁未锁定" : "门锁已锁定"}</small></div>
+      <div className={`home-device-marker smart-screen ${smartScreen?.online && smartScreen?.state.display !== "idle" ? "active" : ""}`}><b>屏</b><small>{!smartScreen?.online ? "智慧屏离线" : smartScreen?.state.display === "idle" ? "智慧屏在线" : "智慧屏消息中"}</small></div>
       <motion.div className="robot robot-placeholder" animate={robotPoint} transition={{ type: "spring", stiffness: 55, damping: 15 }}><span>H</span><label>机器人概念终端</label>{speech && <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="speech">{speech}</motion.div>}</motion.div>
       {highRisk && <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="scene-alert">安全策略已接管</motion.div>}
       {stage >= 2 && stage < 4 && <div className="context-orbit"><i/><span>正在汇集记忆、环境与设备状态</span></div>}
