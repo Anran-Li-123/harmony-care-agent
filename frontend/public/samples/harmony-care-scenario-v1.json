@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "id": "scenario_example",
+  "title": "老人白天普通陪伴",
+  "description": "完整场景文件同时包含运行前上下文和待处理事件。",
+  "source": "upload",
+  "context": {
+    "working_memory": [],
+    "episodic_memory": [],
+    "user_profile": {},
+    "knowledge_base": [
+      {
+        "id": "kb_example",
+        "title": "低打扰陪伴规则",
+        "content": "普通陪伴需求不升级为紧急通知。",
+        "tags": ["companion"]
+      }
+    ],
+    "devices": {
+      "robot": { "id": "robot", "kind": "robot", "online": true, "battery": 82, "location": "living_room" },
+      "watch": { "id": "watch", "kind": "watch", "online": true, "battery": 68, "owner": "李爷爷", "wearing": true },
+      "phone": { "id": "phone", "kind": "phone", "online": true, "battery": 74, "owner": "家属" }
+    },
+    "sensors": {
+      "motion_sensor": { "id": "motion_sensor", "label": "活动传感器", "location": "living_room", "status": "normal" }
+    },
+    "environment": {
+      "lighting": "bright",
+      "time_of_day": "daytime",
+      "temperature_c": 24,
+      "noise_level": "quiet",
+      "home_mode": "normal",
+      "occupancy": { "living_room": ["grandpa", "robot"] },
+      "door_state": "closed",
+      "notes": ["示例数据均为虚构"]
+    },
+    "active_preset": "custom"
+  },
+  "event": {
+    "type": "conversation",
+    "source": "user_voice",
+    "person": "grandpa",
+    "data": { "text": "今天想找人聊聊天。", "location": "living_room" }
+  },
+  "warnings": []
+}

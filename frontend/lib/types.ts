@@ -1,0 +1,21 @@
+export type Risk = "low" | "medium" | "high";
+
+export type ProfileEntry = { field: string; value: unknown; confidence: number; source_type: string; sources: string[] };
+export type Device = { id: string; kind: "robot" | "watch" | "phone"; online: boolean; battery: number; location?: string; owner?: string; wearing?: boolean; latest_action: string; status: string; speech?: string; latest_notification?: string };
+export type Sensor = { id: string; label: string; location: string; status: "normal" | "triggered" | "offline"; value?: unknown };
+export type WorkingMemory = { id: string; kind: string; content: string; timestamp: string };
+export type Episode = { id: string; person: string; event: string; location: string; actions: string[]; result: string; timestamp: string; importance: string };
+export type Knowledge = { id: string; title: string; content: string; tags: string[] };
+export type Environment = { lighting: string; time_of_day: string; temperature_c: number; noise_level: string; home_mode: string; occupancy: Record<string, string[]>; door_state: string; notes: string[] };
+export type Context = { working_memory: WorkingMemory[]; episodic_memory: Episode[]; user_profile: Record<string, ProfileEntry>; knowledge_base: Knowledge[]; devices: Record<string, Device>; sensors: Record<string, Sensor>; environment: Environment; active_preset: string };
+export type CareEvent = { id?: string; type: "sensor" | "conversation" | "device" | "environment" | "manual"; source: string; timestamp?: string; person: string; data: Record<string, unknown> };
+export type Action = { target: "robot" | "watch" | "phone"; action: string; parameters: Record<string, unknown>; priority: string; rationale: string };
+export type Candidate = { field: string; value: unknown; confidence: number; source_type: string; sources: string[]; rationale: string; allowed: boolean };
+export type Change = { field: string; before: unknown; after: unknown; confidence: number; explanation: string };
+export type Timeline = { id: string; timestamp: string; title: string; detail: string; stage: string; tone: "neutral" | "info" | "success" | "warning" | "danger" };
+export type Decision = { decision_id: string; risk_level: Risk; summary: string; evidence: string[]; retrieved_knowledge: string[]; actions: Action[]; memory_updates: { type: string; reason: string; preview: string }[]; profile_candidates: Candidate[]; profile_changes: Change[]; timeline: Timeline[]; llm_mode: string };
+export type Preset = { id: string; name: string; description: string; event: string; tone: string };
+export type ScenarioOption = { id: string; label: string; description: string; compatible_personas: Array<"elder" | "child">; tone: string };
+export type ScenarioOptions = { personas: ScenarioOption[]; memory_packs: ScenarioOption[]; state_packs: ScenarioOption[]; trigger_packs: ScenarioOption[] };
+export type ScenarioGenerationRequest = { persona_pack: "elder" | "child"; memory_pack: string; state_pack: string; trigger_pack: string; prompt?: string };
+export type ScenarioDraft = { schema_version: "1.0"; id: string; title: string; description: string; source: "preset" | "template" | "ai" | "fallback" | "upload"; context: Context; event: CareEvent; warnings: string[] };
