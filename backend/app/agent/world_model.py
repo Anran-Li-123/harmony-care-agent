@@ -30,7 +30,7 @@ class WorldModelBuilder:
                 name=person.name,
                 location=self._person_location(context, person_id, person.location),
                 status=person.status,
-                responsive="normal",
+                responsive=person.responsive,
             )
             for person_id, person in context.people.items()
         }

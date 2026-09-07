@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Any, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.schemas.compatibility import legacy_context_to_household, legacy_event_to_target, legacy_person_id
 
@@ -69,6 +69,8 @@ class Episode(BaseModel):
     actions: list[str] = Field(default_factory=list)
     result: str = "待确认"
     importance: Literal["low", "normal", "high"] = "normal"
+    related_goal_id: str | None = None
+    status: Literal["pending", "resolved", "escalated"] = "resolved"
 
 
 DEVICE_CAPABILITIES: dict[str, list[str]] = {
@@ -183,6 +185,7 @@ class PersonContext(BaseModel):
     name: str
     location: str | None = None
     status: str = "normal"
+    responsive: Literal["normal", "unknown", "confirmed", "unresponsive"] = "normal"
     working_memory: list[WorkingMemoryItem] = Field(default_factory=list)
     episodic_memory: list[Episode] = Field(default_factory=list)
     user_profile: dict[str, ProfileEntry] = Field(default_factory=dict)
@@ -258,7 +261,7 @@ class PersonWorldState(BaseModel):
     name: str
     location: str | None = None
     status: str = "normal"
-    responsive: Literal["normal", "unknown", "responsive", "unresponsive"] = "normal"
+    responsive: Literal["normal", "unknown", "confirmed", "unresponsive"] = "normal"
 
 
 class RobotWorldState(BaseModel):
@@ -428,6 +431,69 @@ class AgentPlan(BaseModel):
     steps: list[PlanStep] = Field(default_factory=list)
 
 
+class FeedbackType(str, Enum):
+    USER_RESPONSE = "user_response"
+    NO_RESPONSE = "no_response"
+    WATCH_ACTIVITY = "watch_activity"
+    GUARDIAN_CONFIRMATION = "guardian_confirmation"
+    GUARDIAN_NO_RESPONSE = "guardian_no_response"
+
+
+class FeedbackEvent(BaseModel):
+    feedback_id: str = Field(default_factory=lambda: f"feedback_{uuid4().hex[:10]}")
+    goal_id: str
+    target_person_id: str | None = None
+    feedback_type: FeedbackType
+    source: str
+    timestamp: str = Field(default_factory=now_iso)
+    data: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_feedback_data(self) -> "FeedbackEvent":
+        if self.feedback_type == FeedbackType.USER_RESPONSE and self.data.get("response") not in {"im_fine", "need_help", "cannot_stand"}:
+            raise ValueError("user_response 仅支持 im_fine、need_help、cannot_stand")
+        if self.feedback_type == FeedbackType.GUARDIAN_CONFIRMATION and self.data.get("decision") not in {"confirmed", "rejected"}:
+            raise ValueError("guardian_confirmation 仅支持 confirmed、rejected")
+        if self.feedback_type == FeedbackType.WATCH_ACTIVITY and self.data.get("activity_detected") is not True:
+            raise ValueError("watch_activity 必须包含 activity_detected=true")
+        return self
+
+
+class FeedbackSubmission(BaseModel):
+    feedback_id: str = Field(default_factory=lambda: f"feedback_{uuid4().hex[:10]}")
+    target_person_id: str | None = None
+    feedback_type: FeedbackType
+    source: str
+    timestamp: str = Field(default_factory=now_iso)
+    data: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("feedback_type", mode="before")
+    @classmethod
+    def validate_feedback_type(cls, value: Any) -> Any:
+        allowed = {item.value for item in FeedbackType}
+        if value not in allowed:
+            raise ValueError(f"不支持的 Feedback Type：{value}")
+        return value
+
+
+class GoalEvaluationOutcome(str, Enum):
+    SUCCESS = "SUCCESS"
+    CONTINUE = "CONTINUE"
+    ESCALATE = "ESCALATE"
+    REPLAN = "REPLAN"
+
+
+class GoalEvaluation(BaseModel):
+    goal_id: str
+    outcome: GoalEvaluationOutcome
+    summary: str
+    evidence: list[str] = Field(default_factory=list)
+    previous_risk_level: RiskLevel
+    updated_risk_level: RiskLevel
+    goal_status: CareGoalStatus
+    requires_follow_up: bool = True
+
+
 class MemoryCandidate(BaseModel):
     type: Literal["working", "episodic"]
     reason: str
@@ -486,6 +552,18 @@ class TriggerRequest(BaseModel):
 class TriggerResponse(BaseModel):
     context: ContextState
     decision: AgentDecision
+
+
+class FeedbackResponse(BaseModel):
+    feedback: FeedbackEvent
+    updated_world_state: WorldState
+    goal_evaluation: GoalEvaluation
+    updated_goal: CareGoal
+    follow_up_plan: AgentPlan
+    actions: list[DeviceAction] = Field(default_factory=list)
+    execution_results: list[DeviceExecutionResult] = Field(default_factory=list)
+    updated_context: ContextState
+    timeline: list[TimelineItem] = Field(default_factory=list)
 
 
 class GenerateRequest(BaseModel):

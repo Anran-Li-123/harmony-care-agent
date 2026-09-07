@@ -14,6 +14,9 @@ from app.schemas.models import (
     DeviceAction,
     DeviceExecutionResult,
     DeviceType,
+    FeedbackEvent,
+    GoalEvaluation,
+    GoalEvaluationOutcome,
     PlanCapabilityRequest,
     PlanStep,
     PlanStepStatus,
@@ -66,8 +69,15 @@ class CarePlanner:
                 ))
         return intents
 
+    def plan_follow_up(self, goal: CareGoal, evaluation: GoalEvaluation, world: WorldState, context: ContextState, feedback: FeedbackEvent) -> AgentPlan:
+        if goal.goal_type in {"confirm_person_safety", "confirm_person_status"}:
+            return self._person_follow_up(goal, evaluation, feedback)
+        if goal.goal_type == "keep_child_safe_from_unknown_visitor":
+            return self._child_door_follow_up(goal, evaluation, feedback)
+        raise ValueError(f"当前 Goal 类型暂不支持 Follow-up Plan：{goal.goal_type}")
+
     @staticmethod
-    def update_after_execution(goal: CareGoal, plan: AgentPlan, actions: list[DeviceAction], results: list[DeviceExecutionResult]) -> None:
+    def update_after_execution(goal: CareGoal, plan: AgentPlan, actions: list[DeviceAction], results: list[DeviceExecutionResult], *, preserve_goal_status: bool = False) -> None:
         successful = Counter(result.capability for result in results if result.success)
         for step in plan.steps:
             if not step.capability_requests:
@@ -81,12 +91,65 @@ class CarePlanner:
             elif any(action.capability in required for action in actions):
                 step.status = PlanStepStatus.ACTIVE
         executable_complete = all(step.status == PlanStepStatus.COMPLETED for step in plan.steps if step.capability_requests)
-        if goal.requires_feedback and executable_complete:
+        if preserve_goal_status or goal.status == CareGoalStatus.COMPLETED:
+            return
+        has_feedback_wait = any(step.status == PlanStepStatus.AWAITING_FEEDBACK for step in plan.steps)
+        if goal.requires_feedback and has_feedback_wait:
             goal.status = CareGoalStatus.AWAITING_FEEDBACK
         elif not goal.requires_feedback and executable_complete:
             goal.status = CareGoalStatus.COMPLETED
         else:
             goal.status = CareGoalStatus.ACTIVE
+
+    def _person_follow_up(self, goal: CareGoal, evaluation: GoalEvaluation, feedback: FeedbackEvent) -> AgentPlan:
+        person_id = goal.target_person_id or "elder_li"
+        if evaluation.outcome == GoalEvaluationOutcome.SUCCESS:
+            steps = [
+                self._step("reassure_person", "回应老人并说明会继续在附近陪伴", Priority.NORMAL, None, "speak", [self._request("speak", DeviceType.ROBOT, parameters={"text": "好的，我会在附近陪您一会儿，有需要请告诉我。"})]),
+                self._step("stay_nearby", "机器人留在附近保持低打扰陪伴", Priority.LOW, None, "wait", [self._request("wait", DeviceType.ROBOT)]),
+            ]
+            return AgentPlan(goal_id=goal.goal_id, summary="确认用户能够正常交流后提供附近陪伴", steps=steps)
+        if evaluation.outcome == GoalEvaluationOutcome.CONTINUE:
+            steps = [
+                self._step("request_response_again", "检测到活动恢复，继续请求老人明确回应", Priority.HIGH, None, "speak", [
+                    self._request("speak", DeviceType.ROBOT, parameters={"text": "检测到您有活动，请确认现在是否需要帮助。"}),
+                    self._request("request_confirmation", DeviceType.WATCH, person_id=person_id, parameters={"message": "检测到活动恢复，请确认是否需要帮助"}),
+                ]),
+                self._step("await_person_feedback", "继续等待老人明确反馈", Priority.HIGH),
+            ]
+            return AgentPlan(goal_id=goal.goal_id, summary="活动信号降低风险，但仍需本人明确确认", steps=steps)
+        no_response = feedback.feedback_type.value == "no_response"
+        prompt = "李爷爷，我还没有收到您的回应，请告诉我是否需要帮助。" if no_response else "我会留在这里陪您，已经再次通知家属，请不要勉强移动。"
+        status = "老人尚未回应，系统正在持续现场确认" if no_response else "用户明确需要帮助，系统已升级通知"
+        steps = [
+            self._step("remain_on_scene", "机器人留在现场持续观察", Priority.HIGH, None, "wait", [self._request("wait", DeviceType.ROBOT)]),
+            self._step("continue_voice_support", "机器人再次呼叫并继续语音陪伴", Priority.HIGH, None, "speak", [self._request("speak", DeviceType.ROBOT, parameters={"text": prompt})]),
+            self._step("escalate_guardian_notice", "向监护人发送高优先级状态更新", Priority.CRITICAL, None, "push_notification", [self._request("push_notification", DeviceType.PHONE, person_id="guardian", parameters={"message": f"家庭看护升级提醒：{status}。"})]),
+            self._step("show_escalated_status", "智慧屏显示持续关注状态", Priority.HIGH, None, "display_status", [self._request("display_status", DeviceType.SMART_SCREEN, parameters={"status": status})]),
+            self._step("maintain_watch_alert", "老人手表继续提醒", Priority.HIGH, None, "vibrate", [self._request("vibrate", DeviceType.WATCH, person_id=person_id, parameters={"message": "请确认当前状态，家属已收到更新"})]),
+            self._step("await_person_feedback", "继续等待老人或监护人反馈", Priority.HIGH),
+        ]
+        return AgentPlan(goal_id=goal.goal_id, summary="升级通知并保持机器人现场陪伴，不作医疗诊断", steps=steps)
+
+    def _child_door_follow_up(self, goal: CareGoal, evaluation: GoalEvaluation, feedback: FeedbackEvent) -> AgentPlan:
+        if evaluation.outcome == GoalEvaluationOutcome.SUCCESS:
+            rejected = feedback.data.get("decision") == "rejected"
+            message = "爸爸妈妈已经拒绝访客，请不要靠近门口，我会陪着你。" if rejected else "爸爸妈妈已经确认，请继续等待大人处理门锁。"
+            steps = [
+                self._step("keep_entrance_locked", "门锁继续保持锁定，不自动开门", Priority.HIGH, "entrance", "lock", [self._request("lock", DeviceType.DOOR_LOCK, location="entrance")]),
+                self._step("guide_child_after_confirmation", "机器人向儿童说明监护人决定并继续安抚", Priority.NORMAL, None, "speak", [self._request("speak", DeviceType.ROBOT, parameters={"text": message})]),
+            ]
+            if rejected:
+                steps.append(self._step("publish_resolution_status", "手机显示访客已被拒绝", Priority.NORMAL, None, "show_status", [self._request("show_status", DeviceType.PHONE, person_id="guardian", parameters={"message": "门口事件已处理：访客已拒绝，门锁保持锁定"})]))
+            return AgentPlan(goal_id=goal.goal_id, summary="保持门锁锁定并向儿童说明监护人决定", steps=steps)
+        steps = [
+            self._step("keep_entrance_locked", "监护人未回应期间门锁继续保持锁定", Priority.HIGH, "entrance", "lock", [self._request("lock", DeviceType.DOOR_LOCK, location="entrance")]),
+            self._step("continue_child_support", "机器人继续陪同并提醒儿童远离门口", Priority.HIGH, None, "speak", [self._request("speak", DeviceType.ROBOT, parameters={"text": "爸爸妈妈还没有回复，请继续远离门口，我会陪着你。"})]),
+            self._step("maintain_safety_message", "智慧屏继续显示安全提示", Priority.HIGH, None, "show_message", [self._request("show_message", DeviceType.SMART_SCREEN, parameters={"message": "请远离门口，继续等待监护人确认"})]),
+            self._step("repeat_guardian_notice", "再次通知监护人", Priority.HIGH, None, "push_notification", [self._request("push_notification", DeviceType.PHONE, person_id="guardian", parameters={"message": "儿童门口事件仍在等待确认，门锁保持锁定。"})]),
+            self._step("await_guardian_confirmation", "继续等待监护人确认", Priority.HIGH, None, None, []),
+        ]
+        return AgentPlan(goal_id=goal.goal_id, summary="保持入口防护与儿童陪伴，继续等待监护人", steps=steps)
 
     def _fall(self, world: WorldState, event: CareEvent) -> tuple[CareGoal, AgentPlan]:
         person_id = event.target_person_id or "elder_li"

@@ -16,6 +16,8 @@ ContextAssembler → SafetyPolicy → KnowledgeRetriever → CareGoal / AgentPla
                                         ↓
              Robot | Watch | Phone | Light | DoorLock | SmartScreen
                                         ↓
+       FeedbackEvent → WorldState → GoalEvaluator → Follow-up Plan
+                                        ↓
                   MemoryExtractor → ProfileUpdater → New Context
 ```
 
@@ -25,7 +27,8 @@ ContextAssembler → SafetyPolicy → KnowledgeRetriever → CareGoal / AgentPla
 - **安全优先于 LLM**：跌倒、儿童独处时门磁开启等明确信号先由 `SafetyPolicy` 处理，再路由终端动作。
 - **能力匹配而非硬编码终端**：`DeviceRegistry` 与 `CapabilityMatcher` 按设备能力、位置、家庭成员和在线状态选择执行设备；离线设备自动跳过并使用仍可用的能力。
 - **目标、计划与设备动作分层**：`CareGoal` 表达看护目标，`AgentPlan`/`PlanStep` 表达高层步骤，具体 `DeviceAction` 仍由能力匹配层生成；安全场景使用确定性计划，普通陪伴可使用现有 LLM 输出辅助高层描述。
-- **反馈边界尚未实现**：需要确认的目标在设备动作执行后标记为 `awaiting_feedback`，记忆只记录“干预已启动、等待确认”，当前没有 FeedbackEvent、目标评估或自动重规划。
+- **受控反馈闭环**：需要确认的旗舰场景支持 `FeedbackEvent → WorldState 更新 → GoalEvaluation → Follow-up Plan → 设备执行 → Memory Finalization`；安全结果使用确定性规则，不调用 LLM。
+- **闭环保持有限**：每次反馈只运行一次评估和一次 Follow-up Plan，不包含无限循环、通用自主 Replan 或真实紧急服务调用。
 - **当前是可验证的 Web Mock**：六类 Harmony 设备及结构化执行结果均由 Mock Adapter 演示；`HarmonySoftBusAdapter` 仅保留接口占位，尚未接入真实 HarmonyOS SDK、软总线或硬件。
 - **真正可替换**：`LLMProvider`、`DeviceAdapter`、内存 Store、Knowledge Retriever 都是清晰边界，后续可换 Redis/PostgreSQL/向量库/HarmonyOS SDK。
 
@@ -115,6 +118,7 @@ FRONTEND_URL=http://localhost:3000
 | POST | `/api/context/upload` | 导入 `.json` Context 或 `.txt/.md` 知识 |
 | POST | `/api/context/generate` | 生成一个受控的样例 Context |
 | POST | `/api/events/trigger` | 触发事件并运行 Agent |
+| POST | `/api/goals/{goal_id}/feedback` | 为当前 Active Goal 提交反馈并执行一次受控 Follow-up |
 | POST | `/api/agent/run` | 与 trigger 等价的编排入口 |
 | GET | `/api/agent/{decision_id}` | 读取既有结构化决策 |
 | GET | `/api/memory` / `/api/profile` | 读取记忆或画像 |
@@ -139,7 +143,11 @@ npm run build
 
 ## CareGoal + Agent Plan
 
-当前编排链路为 `Event → WorldState → Safety → CareGoal → AgentPlan → CapabilityMatcher → DeviceAction → DeviceExecutionResult`。跌倒、儿童门口、安全区和设备离线使用确定性 Planner；低风险陪伴在 Mock Mode 下仍有稳定计划。需要反馈的计划只展示 `AWAITING FEEDBACK`，不会接收或模拟老人/监护人的真实反馈。
+当前编排链路为 `Event → WorldState → Safety → CareGoal → AgentPlan → CapabilityMatcher → DeviceAction → DeviceExecutionResult`。跌倒、儿童门口、安全区和设备离线使用确定性 Planner；低风险陪伴在 Mock Mode 下仍有稳定计划。需要反馈的首轮计划停在 `AWAITING FEEDBACK`，随后可通过显式 Demo 反馈继续；系统不接入真实设备反馈。
+
+## Feedback + Goal Evaluation
+
+Web Demo 现在为老人跌倒和儿童门口两类旗舰场景提供显式反馈按钮。反馈必须绑定当前 `goal_id`，先更新 Context 中的当前状态并重建 WorldState，再由确定性 `GoalEvaluator` 输出 `SUCCESS`、`CONTINUE` 或 `ESCALATE`。Follow-up Plan 仍通过 CapabilityMatcher 选择在线设备，门锁只允许保持锁定。Pending Episode 使用 `related_goal_id` 原位收束为 resolved、escalated 或继续 pending，不会根据一次反馈修改长期画像。
 
 ## HarmonyOS 扩展路径
 

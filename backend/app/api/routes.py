@@ -7,6 +7,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import ValidationError
 
 from app.agent.orchestrator import AgentOrchestrator
+from app.agent.feedback import FeedbackCoordinator
 from app.devices.registry import DeviceRegistry
 from app.config import get_settings
 from app.data.presets import PRESET_METADATA, preset_context
@@ -14,6 +15,10 @@ from app.data.history_loader import history_context, history_options
 from app.data.scenarios import compose_scenario, draft_from_preset, options_payload
 from app.schemas.models import (
     ContextState,
+    CareGoalStatus,
+    FeedbackEvent,
+    FeedbackResponse,
+    FeedbackSubmission,
     GenerateRequest,
     ScenarioDraft,
     ScenarioGenerationRequest,
@@ -183,8 +188,44 @@ def trigger_event(request: TriggerRequest) -> TriggerResponse:
         state.environment.door_state = "open"
     decision = current_orchestrator().run(state, event)
     saved = demo_store.replace_context(state)
-    demo_store.remember_decision(decision)
+    demo_store.remember_decision(decision, event)
     return TriggerResponse(context=saved, decision=decision)
+
+
+@router.post("/goals/{goal_id}/feedback", response_model=FeedbackResponse)
+def submit_goal_feedback(goal_id: str, submission: FeedbackSubmission) -> FeedbackResponse:
+    goal = demo_store.active_goal()
+    latest_evaluation = demo_store.latest_goal_evaluation()
+    if not goal:
+        if latest_evaluation and latest_evaluation.goal_id == goal_id and latest_evaluation.goal_status == CareGoalStatus.COMPLETED:
+            raise HTTPException(status_code=409, detail="该 Goal 已完成，不能再次提交 Feedback")
+        raise HTTPException(status_code=409, detail="当前没有可接收 Feedback 的 Active Goal")
+    if goal.goal_id != goal_id:
+        raise HTTPException(status_code=409, detail=f"goal_id 与当前 Active Goal 不一致：{goal.goal_id}")
+    if goal.status not in {CareGoalStatus.ACTIVE, CareGoalStatus.AWAITING_FEEDBACK}:
+        raise HTTPException(status_code=409, detail=f"当前 Goal 状态 {goal.status.value} 不接受 Feedback")
+    if submission.target_person_id and goal.target_person_id and submission.target_person_id != goal.target_person_id:
+        raise HTTPException(status_code=422, detail="Feedback Target 与当前 Goal Target 不一致")
+    try:
+        feedback = FeedbackEvent(goal_id=goal_id, **submission.model_dump())
+    except ValidationError as exc:
+        message = str(exc.errors()[0].get("msg", "Feedback 数据无效")).replace("Value error, ", "")
+        raise HTTPException(status_code=422, detail=message) from exc
+    latest_feedback = demo_store.latest_feedback()
+    if latest_feedback and (latest_feedback.feedback_type, latest_feedback.source, latest_feedback.target_person_id, latest_feedback.data) == (feedback.feedback_type, feedback.source, feedback.target_person_id, feedback.data):
+        raise HTTPException(status_code=409, detail="检测到重复 Feedback，本次提交已拒绝")
+    plan = demo_store.active_plan()
+    originating_event = demo_store.originating_event()
+    previous_risk = demo_store.active_risk_level()
+    if not plan or not originating_event or not previous_risk:
+        raise HTTPException(status_code=409, detail="当前 Goal 的运行时上下文不完整，请重新触发原始事件")
+    try:
+        response = FeedbackCoordinator().run(demo_store.context(), goal, plan, originating_event, feedback, previous_risk)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    response.updated_context = demo_store.replace_context(response.updated_context, clear_runtime=False)
+    demo_store.record_feedback(feedback, response.goal_evaluation, response.updated_goal, response.follow_up_plan)
+    return response
 
 
 @router.get("/agent/{decision_id}")

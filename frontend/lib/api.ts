@@ -1,4 +1,4 @@
-import type { CareEvent, Context, Decision, HistoryOption, Preset, ScenarioDraft, ScenarioGenerationRequest, ScenarioOptions } from "./types";
+import type { CareEvent, Context, Decision, FeedbackResponse, FeedbackSubmission, HistoryOption, Preset, ScenarioDraft, ScenarioGenerationRequest, ScenarioOptions } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
@@ -24,6 +24,7 @@ export const api = {
   generate: (prompt: string) => request<Context>("/api/context/generate", { method: "POST", body: JSON.stringify({ prompt }) }),
   generateScenario: (input: ScenarioGenerationRequest) => request<ScenarioDraft>("/api/scenarios/generate", { method: "POST", body: JSON.stringify(input) }),
   trigger: (event: Record<string, unknown>) => request<{ context: Context; decision: Decision }>("/api/events/trigger", { method: "POST", body: JSON.stringify({ event }) }),
+  feedback: (goalId: string, input: FeedbackSubmission) => request<FeedbackResponse>(`/api/goals/${goalId}/feedback`, { method: "POST", body: JSON.stringify(input) }),
   upload: async (file: File) => {
     const form = new FormData(); form.append("file", file);
     const response = await fetch(`${BASE}/api/context/upload`, { method: "POST", body: form });

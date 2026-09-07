@@ -5,9 +5,14 @@ import re
 from app.agent.safety import profile_candidate_allowed
 from app.schemas.models import (
     AgentDecision,
+    CareGoal,
     CareEvent,
     ContextState,
     Episode,
+    FeedbackEvent,
+    FeedbackType,
+    GoalEvaluation,
+    GoalEvaluationOutcome,
     MemoryCandidate,
     ProfileCandidate,
     ProfileChange,
@@ -35,10 +40,39 @@ class MemoryExtractor:
         person.working_memory = person.working_memory[-6:]
         if any(item.type == "episodic" for item in decision.memory_updates):
             person.episodic_memory.append(
-                Episode(person=person.person_id, event=summary, location=str(event.data.get("location", "unknown")), actions=[a.capability or a.action or "unknown" for a in decision.actions], result=self._result(event, decision, person.name), importance="high" if decision.risk_level.value == "high" else "normal")
+                Episode(person=person.person_id, event=summary, location=str(event.data.get("location", "unknown")), actions=[a.capability or a.action or "unknown" for a in decision.actions], result=self._result(event, decision, person.name), importance="high" if decision.risk_level.value == "high" else "normal", related_goal_id=decision.care_goal.goal_id if decision.care_goal else None, status="pending" if decision.care_goal and decision.care_goal.requires_feedback else "resolved")
             )
         context.sync_legacy_projection(person.person_id)
         return person.episodic_memory[-1].id if person.episodic_memory else ""
+
+    def finalize_feedback(self, context: ContextState, originating_event: CareEvent, feedback: FeedbackEvent, evaluation: GoalEvaluation, goal: CareGoal, actions: list[str]) -> Episode | None:
+        person = context.target_person(goal.target_person_id)
+        if not person:
+            return None
+        episode = next((item for item in reversed(person.episodic_memory) if item.related_goal_id == goal.goal_id), None)
+        if not episode:
+            episode = Episode(person=person.person_id, event=self._summary(originating_event), location=str(originating_event.data.get("location", person.location or "unknown")), related_goal_id=goal.goal_id, status="pending")
+            person.episodic_memory.append(episode)
+        episode.actions = list(dict.fromkeys([*episode.actions, *actions]))
+        episode.status = "resolved" if evaluation.outcome == GoalEvaluationOutcome.SUCCESS else "escalated" if evaluation.outcome == GoalEvaluationOutcome.ESCALATE else "pending"
+        episode.result = self._feedback_result(feedback, evaluation, person.name)
+        context.sync_legacy_projection(person.person_id)
+        return episode
+
+    @staticmethod
+    def _feedback_result(feedback: FeedbackEvent, evaluation: GoalEvaluation, person_name: str) -> str:
+        if feedback.feedback_type == FeedbackType.USER_RESPONSE:
+            response = feedback.data["response"]
+            if response == "im_fine":
+                return f"{person_name}已回应，目前能够正常交流，本次现场确认完成。"
+            return "用户明确表示当前需要帮助，系统已升级通知并持续现场陪伴。" if response == "need_help" else "用户明确表示当前无法自行站起，系统已升级通知并持续现场陪伴。"
+        if feedback.feedback_type == FeedbackType.NO_RESPONSE:
+            return "当前仍未收到用户回应，系统已升级通知并继续现场观察。"
+        if feedback.feedback_type == FeedbackType.WATCH_ACTIVITY:
+            return "手表检测到活动恢复，但仍在等待用户明确确认。"
+        if feedback.feedback_type == FeedbackType.GUARDIAN_CONFIRMATION:
+            return "监护人已确认访客，儿童继续等待大人处理门锁，安全确认完成。" if feedback.data["decision"] == "confirmed" else "监护人已拒绝访客，门锁保持锁定，儿童安全流程完成。"
+        return "监护人暂未回应，入口防护与儿童陪伴继续保持。"
 
     @staticmethod
     def _result(event: CareEvent, decision: AgentDecision, person_name: str) -> str:

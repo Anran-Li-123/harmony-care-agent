@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import type { CareEvent, Context, Decision, HistoryOption, Preset, ScenarioDraft, ScenarioGenerationRequest, ScenarioOptions } from "@/lib/types";
+import type { CareEvent, Context, Decision, FeedbackSubmission, HistoryOption, Preset, ScenarioDraft, ScenarioGenerationRequest, ScenarioOptions } from "@/lib/types";
 import { SiteHeader } from "./SiteHeader";
 import { ScenarioComposer } from "./ScenarioComposer";
 import { SmartHomeScene } from "./SmartHomeScene";
@@ -14,6 +14,7 @@ import { MemoryEvolution } from "./MemoryEvolution";
 import { HistorySelector } from "./HistorySelector";
 import { HouseholdEventSelector } from "./HouseholdEventSelector";
 import { WorldStatePanel } from "./WorldStatePanel";
+import { FeedbackSimulationPanel } from "./FeedbackSimulationPanel";
 
 type PlaybackStatus = "idle" | "playing" | "paused" | "complete";
 const finalStage = 7;
@@ -31,6 +32,7 @@ export function Dashboard() {
   const [decision, setDecision] = useState<Decision | null>(null);
   const [stage, setStage] = useState(-1);
   const [playback, setPlayback] = useState<PlaybackStatus>("idle");
+  const [runMode, setRunMode] = useState<"initial" | "feedback">("initial");
   const [speed, setSpeed] = useState(1);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
@@ -43,6 +45,7 @@ export function Dashboard() {
     setDecision(null);
     setStage(-1);
     setPlayback("idle");
+    setRunMode("initial");
   }, []);
 
   const applyDraft = useCallback((next: ScenarioDraft) => {
@@ -70,12 +73,12 @@ export function Dashboard() {
     if (stage >= finalStage) {
       if (resultContext) setContext(resultContext);
       setPlayback("complete");
-      setNotice("演示完成：终端反馈、事件记忆与画像变化已同步。");
+      setNotice(runMode === "feedback" ? `反馈闭环完成：${decision?.goal_evaluation?.outcome || "目标状态已更新"}。` : "首轮干预完成：设备结果与 Pending Memory 已同步。需要反馈的 Goal 可继续运行第二轮。");
       return;
     }
     const timer = window.setTimeout(() => setStage((current) => Math.min(current + 1, finalStage)), 900 / speed);
     return () => window.clearTimeout(timer);
-  }, [playback, resultContext, speed, stage]);
+  }, [decision?.goal_evaluation?.outcome, playback, resultContext, runMode, speed, stage]);
 
   const loadPreset = async (presetId: string) => {
     try {
@@ -117,8 +120,34 @@ export function Dashboard() {
       const snapshot = structuredClone(context);
       const response = await api.trigger(event);
       setBeforeContext(snapshot); setResultContext(response.context); setDecision(response.decision);
-      setContext(snapshot); setStage(0); setPlayback("playing");
+      setContext(snapshot); setRunMode("initial"); setStage(0); setPlayback("playing");
     } catch (err) { setError(err instanceof Error ? err.message : "Agent 运行失败"); }
+    finally { setBusy(false); }
+  };
+
+  const submitFeedback = async (input: FeedbackSubmission) => {
+    if (!context || !decision?.care_goal) return;
+    try {
+      setBusy(true); setError(""); setNotice("");
+      const snapshot = structuredClone(context);
+      const response = await api.feedback(decision.care_goal.goal_id, input);
+      const feedbackDecision: Decision = {
+        ...decision,
+        risk_level: response.goal_evaluation.updated_risk_level,
+        summary: response.goal_evaluation.summary,
+        evidence: response.goal_evaluation.evidence,
+        world_state: response.updated_world_state,
+        care_goal: response.updated_goal,
+        agent_plan: response.follow_up_plan,
+        goal_evaluation: response.goal_evaluation,
+        actions: response.actions,
+        execution_results: response.execution_results,
+        memory_updates: [{ type: "episodic", reason: "同一 Goal 的反馈已评估", preview: response.goal_evaluation.summary }],
+        profile_candidates: [], profile_changes: [], timeline: response.timeline,
+      };
+      setBeforeContext(snapshot); setResultContext(response.updated_context); setDecision(feedbackDecision);
+      setContext(snapshot); setRunMode("feedback"); setStage(0); setPlayback("playing");
+    } catch (err) { setError(err instanceof Error ? err.message : "Feedback 处理失败"); }
     finally { setBusy(false); }
   };
 
@@ -165,6 +194,7 @@ export function Dashboard() {
 
   const sceneResult = stage >= 4 ? resultContext : null;
   const deviceContext = stage >= 5 && resultContext ? resultContext : context;
+  const awaitingGoal = decision?.care_goal?.status === "awaiting_feedback";
 
   return <div className="lab-page">
     <SiteHeader lab />
@@ -181,11 +211,11 @@ export function Dashboard() {
       {(notice || error) && <div className={`notice lab-notice ${error ? "error" : ""}`} role="status">{error || notice}<button aria-label="关闭提示" onClick={() => { setNotice(""); setError(""); }}>×</button></div>}
       <ContextPanel context={context} event={event} onSave={saveContext} onUpload={upload}/>
       <div className="lab-workspace">
-        <div className="lab-input-column"><HouseholdEventSelector context={context} event={event} disabled={busy || playback === "playing"} onChange={changeEvent}/><details className="experimental-builder"><summary>Experimental · 旧版场景构造</summary><ScenarioComposer options={options} draft={draft} event={event} disabled={busy || playback === "playing"} onGenerate={generateScenario} onEventChange={changeEvent}/></details></div>
+        <div className="lab-input-column"><HouseholdEventSelector context={context} event={event} disabled={busy || playback === "playing" || Boolean(awaitingGoal)} onChange={changeEvent}/><FeedbackSimulationPanel goal={decision?.care_goal} enabled={playback === "complete"} busy={busy} onSubmit={submitFeedback}/><details className="experimental-builder"><summary>Experimental · 旧版场景构造</summary><ScenarioComposer options={options} draft={draft} event={event} disabled={busy || playback === "playing"} onGenerate={generateScenario} onEventChange={changeEvent}/></details></div>
         <section className="lab-center">
           <SmartHomeScene context={context} resultContext={sceneResult} decision={decision} stage={stage} playback={playback}/>
-          <Pipeline active={stage} status={playback} speed={speed} disabled={busy} awaitingFeedback={decision?.care_goal?.status === "awaiting_feedback"} onToggle={() => setPlayback((current) => current === "playing" ? "paused" : current === "paused" ? "playing" : current)} onStep={step} onReplay={replay} onSpeed={setSpeed}/>
-          <button className="run-simulation" disabled={busy || playback === "playing"} onClick={execute}>{busy ? "正在准备数据…" : decision && playback === "complete" ? "再次运行当前场景" : "开始运行 Agent 动画"}<span>→</span></button>
+          <Pipeline active={stage} status={playback} speed={speed} disabled={busy} awaitingFeedback={awaitingGoal} runMode={runMode} onToggle={() => setPlayback((current) => current === "playing" ? "paused" : current === "paused" ? "playing" : current)} onStep={step} onReplay={replay} onSpeed={setSpeed}/>
+          <button className="run-simulation" disabled={busy || playback === "playing" || Boolean(awaitingGoal)} onClick={execute}>{busy ? "正在准备数据…" : awaitingGoal ? "请先提交当前 Goal 的反馈" : decision && playback === "complete" ? "再次运行当前场景" : "开始运行 Agent 动画"}<span>→</span></button>
         </section>
         <aside className="lab-results">
           <WorldStatePanel world={decision?.world_state} visible={stage >= 2}/>
