@@ -16,6 +16,6 @@ export function MemoryEvolution({ beforeContext, context, decision, stage }: { b
       <article className={memoryVisible && decision?.profile_changes.length ? "changed" : ""}><small>长期画像</small><b>{memoryVisible ? decision?.profile_changes.length ? "画像已更新" : "保持不变" : "尚未处理"}</b><p>{memoryVisible ? decision?.profile_changes.map((change) => `${change.field}: ${String(change.before ?? "空白")} → ${String(change.after)}`).join("；") || "单次普通状态不会被写成长期偏好" : "只接受明确表达或多条一致证据"}</p></article>
     </div>
     <div className="timeline timeline-v2"><div className="timeline-title">本次运行记录</div>{visibleTimeline.length ? visibleTimeline.map((item) => <div className={`timeline-item ${item.tone}`} key={item.id}><time>{time(item.timestamp)}</time><i/><div><b>{item.title}</b><span>{item.detail}</span></div></div>) : <p className="muted">运行场景后，这里会按动画进度展开完整链路。</p>}</div>
-    <div className="episode-strip"><b>最近时间 / 事件记录</b>{context.episodic_memory.length ? context.episodic_memory.slice(-4).reverse().map((episode) => <span key={episode.id}>{episode.event}</span>) : <span>暂无历史记录</span>}</div>
+    <div className="episode-strip"><b>最近时间 / 事件记录</b>{context.episodic_memory.length ? context.episodic_memory.slice(-4).reverse().map((episode) => <span key={episode.id}>{episode.event} · {episode.result}</span>) : <span>暂无历史记录</span>}</div>
   </section>;
 }

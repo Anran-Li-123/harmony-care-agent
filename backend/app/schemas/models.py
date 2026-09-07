@@ -360,6 +360,74 @@ class DeviceExecutionResult(BaseModel):
     resulting_state: dict[str, Any] = Field(default_factory=dict)
 
 
+class CareGoalStatus(str, Enum):
+    PLANNED = "planned"
+    ACTIVE = "active"
+    AWAITING_FEEDBACK = "awaiting_feedback"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
+class PlanStepStatus(str, Enum):
+    PLANNED = "planned"
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    AWAITING_FEEDBACK = "awaiting_feedback"
+
+
+class CareGoal(BaseModel):
+    goal_id: str = Field(default_factory=lambda: f"goal_{uuid4().hex[:10]}")
+    goal_type: str
+    target_person_id: str | None = None
+    description: str
+    priority: Priority = Priority.NORMAL
+    status: CareGoalStatus = CareGoalStatus.PLANNED
+    requires_feedback: bool = False
+
+
+class PlanCapabilityRequest(BaseModel):
+    capability: str
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    target_location: str | None = None
+    target_person_id: str | None = None
+    device_type: DeviceType | None = None
+
+    @model_validator(mode="after")
+    def validate_capability(self) -> "PlanCapabilityRequest":
+        allowed = {item for capabilities in DEVICE_CAPABILITIES.values() for item in capabilities}
+        if self.capability not in allowed:
+            raise ValueError(f"Plan capability 不在白名单：{self.capability}")
+        return self
+
+
+class PlanStep(BaseModel):
+    step_id: str = Field(default_factory=lambda: f"step_{uuid4().hex[:8]}")
+    intent: str
+    description: str
+    priority: Priority = Priority.NORMAL
+    status: PlanStepStatus = PlanStepStatus.PLANNED
+    target_location: str | None = None
+    target_person_id: str | None = None
+    required_capability: str | None = None
+    capability_requests: list[PlanCapabilityRequest] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_primary_capability(self) -> "PlanStep":
+        allowed = {item for capabilities in DEVICE_CAPABILITIES.values() for item in capabilities}
+        if self.required_capability and self.required_capability not in allowed:
+            raise ValueError(f"PlanStep capability 不在白名单：{self.required_capability}")
+        if not self.required_capability and self.capability_requests:
+            self.required_capability = self.capability_requests[0].capability
+        return self
+
+
+class AgentPlan(BaseModel):
+    plan_id: str = Field(default_factory=lambda: f"plan_{uuid4().hex[:10]}")
+    goal_id: str
+    summary: str
+    steps: list[PlanStep] = Field(default_factory=list)
+
+
 class MemoryCandidate(BaseModel):
     type: Literal["working", "episodic"]
     reason: str
@@ -401,6 +469,8 @@ class AgentDecision(BaseModel):
     retrieved_knowledge: list[str] = Field(default_factory=list)
     actions: list[DeviceAction] = Field(default_factory=list)
     execution_results: list[DeviceExecutionResult] = Field(default_factory=list)
+    care_goal: CareGoal | None = None
+    agent_plan: AgentPlan | None = None
     memory_updates: list[MemoryCandidate] = Field(default_factory=list)
     profile_candidates: list[ProfileCandidate] = Field(default_factory=list)
     profile_changes: list[ProfileChange] = Field(default_factory=list)

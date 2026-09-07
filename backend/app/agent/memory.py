@@ -35,10 +35,28 @@ class MemoryExtractor:
         person.working_memory = person.working_memory[-6:]
         if any(item.type == "episodic" for item in decision.memory_updates):
             person.episodic_memory.append(
-                Episode(person=person.person_id, event=summary, location=str(event.data.get("location", "unknown")), actions=[a.capability or a.action or "unknown" for a in decision.actions], result=decision.summary, importance="high" if decision.risk_level.value == "high" else "normal")
+                Episode(person=person.person_id, event=summary, location=str(event.data.get("location", "unknown")), actions=[a.capability or a.action or "unknown" for a in decision.actions], result=self._result(event, decision, person.name), importance="high" if decision.risk_level.value == "high" else "normal")
             )
         context.sync_legacy_projection(person.person_id)
         return person.episodic_memory[-1].id if person.episodic_memory else ""
+
+    @staticmethod
+    def _result(event: CareEvent, decision: AgentDecision, person_name: str) -> str:
+        goal = decision.care_goal
+        if not goal or not goal.requires_feedback:
+            return decision.summary
+        completed_capabilities = {result.capability for result in decision.execution_results if result.success}
+        if event.source == "fall_detector":
+            progress = "机器人已前往现场并进行语音确认" if {"navigate_to", "speak"} <= completed_capabilities else "系统已启动现场确认流程"
+            return f"检测到疑似跌倒，{progress}，当前等待{person_name}反馈。"
+        if event.source == "door_sensor":
+            progress = "系统已启动门口安全干预并通知监护人" if "push_notification" in completed_capabilities else "系统已启动门口安全干预"
+            return f"{progress}，当前等待监护人确认。"
+        if event.source == "watch_geofence":
+            return "系统已提醒儿童并通知监护人，当前等待位置确认。"
+        if event.source == "watch_activity":
+            return f"系统已启动状态确认流程，当前等待{person_name}反馈。"
+        return "系统已启动干预流程，目前等待确认。"
 
     @staticmethod
     def _summary(event: CareEvent) -> str:

@@ -1,10 +1,11 @@
 "use client";
 
-const stages = ["准备", "感知变化", "上下文汇集", "安全 / AI 判断", "动作路由", "终端反馈", "记忆更新", "完成"];
-type Props = { active: number; status: string; speed: number; disabled: boolean; onToggle: () => void; onStep: () => void; onReplay: () => void; onSpeed: (speed: number) => void };
+const baseStages = ["准备", "感知变化", "上下文汇集", "安全 / 目标规划", "Harmony 能力匹配", "设备执行", "记忆更新"];
+type Props = { active: number; status: string; speed: number; disabled: boolean; awaitingFeedback?: boolean; onToggle: () => void; onStep: () => void; onReplay: () => void; onSpeed: (speed: number) => void };
 
-export function Pipeline({ active, status, speed, disabled, onToggle, onStep, onReplay, onSpeed }: Props) {
+export function Pipeline({ active, status, speed, disabled, awaitingFeedback, onToggle, onStep, onReplay, onSpeed }: Props) {
   const canControl = active >= 0;
+  const stages = [...baseStages, awaitingFeedback ? "等待反馈" : "完成"];
   return <section className="pipeline pipeline-v2 glass">
     <div className="panel-heading"><div><span className="eyebrow">PLAYBACK TIMELINE</span><h2>Agent 动画进度</h2></div><span className="small muted">展示证据与结果，不展示隐藏推理</span></div>
     <div className="pipeline-track">{stages.map((stage, index) => <div className="pipe-wrap" key={stage}><div className={`pipe-node ${index <= active ? "done" : ""} ${index === active ? "current" : ""}`}><b>{index + 1}</b><span>{stage}</span></div>{index < stages.length - 1 && <i className={index < active ? "line-on" : ""}/>}</div>)}</div>

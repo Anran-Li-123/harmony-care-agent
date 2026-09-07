@@ -10,9 +10,9 @@
 Working / Episodic / Profile / Knowledge / Device / Sensor / Environment
                                   + New Event
                                         ↓
-ContextAssembler → SafetyPolicy → KnowledgeRetriever → LLMProvider
+ContextAssembler → SafetyPolicy → KnowledgeRetriever → CareGoal / AgentPlan
                                         ↓
-       DeviceRegistry + CapabilityMatcher → ActionRouter
+             PlanStep → DeviceRegistry + CapabilityMatcher → ActionRouter
                                         ↓
              Robot | Watch | Phone | Light | DoorLock | SmartScreen
                                         ↓
@@ -24,6 +24,8 @@ ContextAssembler → SafetyPolicy → KnowledgeRetriever → LLMProvider
 - **显式优先，推断克制**：称呼等显式信息可立即保存；京剧、作息等推断需要持续证据；医疗、药物、过敏、紧急联系人等高风险字段不能由一次普通事件推断。
 - **安全优先于 LLM**：跌倒、儿童独处时门磁开启等明确信号先由 `SafetyPolicy` 处理，再路由终端动作。
 - **能力匹配而非硬编码终端**：`DeviceRegistry` 与 `CapabilityMatcher` 按设备能力、位置、家庭成员和在线状态选择执行设备；离线设备自动跳过并使用仍可用的能力。
+- **目标、计划与设备动作分层**：`CareGoal` 表达看护目标，`AgentPlan`/`PlanStep` 表达高层步骤，具体 `DeviceAction` 仍由能力匹配层生成；安全场景使用确定性计划，普通陪伴可使用现有 LLM 输出辅助高层描述。
+- **反馈边界尚未实现**：需要确认的目标在设备动作执行后标记为 `awaiting_feedback`，记忆只记录“干预已启动、等待确认”，当前没有 FeedbackEvent、目标评估或自动重规划。
 - **当前是可验证的 Web Mock**：六类 Harmony 设备及结构化执行结果均由 Mock Adapter 演示；`HarmonySoftBusAdapter` 仅保留接口占位，尚未接入真实 HarmonyOS SDK、软总线或硬件。
 - **真正可替换**：`LLMProvider`、`DeviceAdapter`、内存 Store、Knowledge Retriever 都是清晰边界，后续可换 Redis/PostgreSQL/向量库/HarmonyOS SDK。
 
@@ -134,6 +136,10 @@ npm run build
 ## Harmony Device Capability Layer
 
 当前静态家庭上下文包含 `robot_01`、老人/儿童手表、监护人手机、卧室/通道灯、玄关门锁和客厅智慧屏。动作使用 `target_device_id + capability + parameters + priority + reason`，执行后返回 `DeviceExecutionResult`，旧版 `target + action` 由单一兼容层转换。UI 中的设备状态、动作和执行结果均是 Web Mock，不代表已连接真实家庭设备。
+
+## CareGoal + Agent Plan
+
+当前编排链路为 `Event → WorldState → Safety → CareGoal → AgentPlan → CapabilityMatcher → DeviceAction → DeviceExecutionResult`。跌倒、儿童门口、安全区和设备离线使用确定性 Planner；低风险陪伴在 Mock Mode 下仍有稳定计划。需要反馈的计划只展示 `AWAITING FEEDBACK`，不会接收或模拟老人/监护人的真实反馈。
 
 ## HarmonyOS 扩展路径
 

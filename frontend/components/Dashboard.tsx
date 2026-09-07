@@ -184,7 +184,7 @@ export function Dashboard() {
         <div className="lab-input-column"><HouseholdEventSelector context={context} event={event} disabled={busy || playback === "playing"} onChange={changeEvent}/><details className="experimental-builder"><summary>Experimental · 旧版场景构造</summary><ScenarioComposer options={options} draft={draft} event={event} disabled={busy || playback === "playing"} onGenerate={generateScenario} onEventChange={changeEvent}/></details></div>
         <section className="lab-center">
           <SmartHomeScene context={context} resultContext={sceneResult} decision={decision} stage={stage} playback={playback}/>
-          <Pipeline active={stage} status={playback} speed={speed} disabled={busy} onToggle={() => setPlayback((current) => current === "playing" ? "paused" : current === "paused" ? "playing" : current)} onStep={step} onReplay={replay} onSpeed={setSpeed}/>
+          <Pipeline active={stage} status={playback} speed={speed} disabled={busy} awaitingFeedback={decision?.care_goal?.status === "awaiting_feedback"} onToggle={() => setPlayback((current) => current === "playing" ? "paused" : current === "paused" ? "playing" : current)} onStep={step} onReplay={replay} onSpeed={setSpeed}/>
           <button className="run-simulation" disabled={busy || playback === "playing"} onClick={execute}>{busy ? "正在准备数据…" : decision && playback === "complete" ? "再次运行当前场景" : "开始运行 Agent 动画"}<span>→</span></button>
         </section>
         <aside className="lab-results">
