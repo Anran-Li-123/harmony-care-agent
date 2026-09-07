@@ -7,12 +7,12 @@ from typing import Any
 from openai import OpenAI
 
 from app.config import Settings
-from app.schemas.models import CareEvent, ContextState
+from app.schemas.models import CareEvent, ContextState, WorldState
 
 
 class LLMProvider(ABC):
     @abstractmethod
-    def decide(self, context: ContextState, event: CareEvent, knowledge: list[str]) -> dict[str, Any]: ...
+    def decide(self, context: ContextState, event: CareEvent, knowledge: list[str], world_state: WorldState | None = None) -> dict[str, Any]: ...
 
     @abstractmethod
     def sample_preset(self, prompt: str) -> str: ...
@@ -24,7 +24,7 @@ class LLMProvider(ABC):
 class MockLLMProvider(LLMProvider):
     """A deliberately small deterministic provider for repeatable no-key demos."""
 
-    def decide(self, context: ContextState, event: CareEvent, knowledge: list[str]) -> dict[str, Any]:
+    def decide(self, context: ContextState, event: CareEvent, knowledge: list[str], world_state: WorldState | None = None) -> dict[str, Any]:
         text = str(event.data.get("text", ""))
         if "无聊" in text:
             preferred = context.user_profile.get("preferred_entertainment")
@@ -67,12 +67,21 @@ class OpenAICompatibleProvider(LLMProvider):
         self.client = OpenAI(api_key=settings.openai_api_key, base_url=settings.openai_base_url, timeout=settings.llm_timeout_seconds)
         self.model = settings.model_name
 
-    def decide(self, context: ContextState, event: CareEvent, knowledge: list[str]) -> dict[str, Any]:
+    def decide(self, context: ContextState, event: CareEvent, knowledge: list[str], world_state: WorldState | None = None) -> dict[str, Any]:
+        target = world_state.people.get(event.target_person_id or "") if world_state else None
+        relevant_room = world_state.rooms.get(target.location or "") if world_state and target else None
         compact_context = {
             "profile": {key: value.value for key, value in context.user_profile.items()},
             "devices": {key: {"online": value.online, "location": value.location} for key, value in context.devices.items()},
             "environment": context.environment.model_dump(),
             "recent_episodes": [item.model_dump() for item in context.episodic_memory[-4:]],
+            "world_state": {
+                "people": {key: value.model_dump() for key, value in world_state.people.items()},
+                "robot": world_state.robot.model_dump() if world_state.robot else None,
+                "relevant_room": relevant_room.model_dump() if relevant_room else None,
+                "active_event": world_state.active_event.model_dump() if world_state.active_event else None,
+                "risk_areas": [area.model_dump() for area in world_state.risk_areas],
+            } if world_state else None,
         }
         prompt = {
             "role": "user",

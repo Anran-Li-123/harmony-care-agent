@@ -13,6 +13,7 @@ import { ContextPanel } from "./ContextPanel";
 import { MemoryEvolution } from "./MemoryEvolution";
 import { HistorySelector } from "./HistorySelector";
 import { HouseholdEventSelector } from "./HouseholdEventSelector";
+import { WorldStatePanel } from "./WorldStatePanel";
 
 type PlaybackStatus = "idle" | "playing" | "paused" | "complete";
 const finalStage = 7;
@@ -187,6 +188,7 @@ export function Dashboard() {
           <button className="run-simulation" disabled={busy || playback === "playing"} onClick={execute}>{busy ? "正在准备数据…" : decision && playback === "complete" ? "再次运行当前场景" : "开始运行 Agent 动画"}<span>→</span></button>
         </section>
         <aside className="lab-results">
+          <WorldStatePanel world={decision?.world_state} visible={stage >= 2}/>
           <DecisionPanel decision={decision} stage={stage}/>
           <DevicePanel devices={deviceContext.devices} decision={decision} stage={stage}/>
         </aside>

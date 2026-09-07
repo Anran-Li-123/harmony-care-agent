@@ -1,10 +1,31 @@
-from app.schemas.models import CareEvent, ContextState, RiskLevel
+from app.schemas.models import CareEvent, ContextState, RiskLevel, WorldState
 
 
 class SafetyPolicy:
     """Deterministic guard rails precede LLM decisions for clear safety situations."""
 
-    def evaluate(self, context: ContextState, event: CareEvent) -> tuple[RiskLevel | None, list[str]]:
+    def evaluate(self, context: ContextState, event: CareEvent, world_state: WorldState | None = None) -> tuple[RiskLevel | None, list[str]]:
+        if world_state:
+            target = world_state.people.get(event.target_person_id or "")
+            if target and target.status == "suspected_fall":
+                evidence = ["WorldState 标记疑似跌倒", "安全事件必须优先现场确认"]
+                if world_state.robot and world_state.robot.online:
+                    evidence.append("机器人在线，可立即前往现场")
+                return RiskLevel.HIGH, evidence
+            if target and target.status == "safety_concern" and event.source == "door_sensor":
+                alone = any(area.reason == "child_alone_door_event" for area in world_state.risk_areas)
+                return (RiskLevel.HIGH if alone else RiskLevel.MEDIUM), ["WorldState 标记儿童门口安全关注", "入口区域需要确认"]
+            if target and target.status == "needs_confirmation":
+                return RiskLevel.MEDIUM, ["WorldState 标记需要本人确认", "该状态不构成疾病诊断"]
+            if target and target.status == "outside_safe_zone":
+                return RiskLevel.HIGH, ["WorldState 标记儿童已离开家庭安全区", "需要由监护人确认当前位置"]
+            offline = [device.device_id for device in world_state.devices.values() if not device.online]
+            if world_state.robot and not world_state.robot.online:
+                offline.append(world_state.robot.device_id)
+            if event.type == "device" and offline:
+                return RiskLevel.MEDIUM, [f"WorldState 标记设备离线：{', '.join(offline)}", "需要启用设备降级策略"]
+
+        # Legacy fallback remains for callers and uploaded v1 contexts without WorldState.
         if event.source == "fall_detector" and event.data.get("detected"):
             evidence = ["跌倒感知器已触发", "安全事件必须优先现场确认"]
             if context.devices.get("robot", None) and context.devices["robot"].online:

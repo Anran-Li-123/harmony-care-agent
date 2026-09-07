@@ -4,6 +4,7 @@ from app.agent.knowledge import KnowledgeRetriever
 from app.agent.llm import LLMProvider
 from app.agent.memory import MemoryExtractor, ProfileUpdater
 from app.agent.safety import SafetyPolicy
+from app.agent.world_model import WorldModelBuilder
 from app.devices.adapters import ActionRouter
 from app.schemas.models import (
     AgentDecision,
@@ -45,14 +46,17 @@ class AgentOrchestrator:
         self.memory = MemoryExtractor()
         self.profile = ProfileUpdater()
         self.router = ActionRouter()
+        self.world_model = WorldModelBuilder()
 
     def run(self, state: ContextState, event: CareEvent) -> AgentDecision:
+        world_state = self.world_model.build(state, event)
         timeline = [
             TimelineItem(title="新事件进入系统", detail=f"{event.source} · {event.type}", stage="event", tone="info"),
+            TimelineItem(title="当前世界状态已构建", detail=f"识别 {len(world_state.people)} 位家庭成员、{len(world_state.rooms)} 个语义空间", stage="world-model", tone="info"),
             TimelineItem(title="上下文已组装", detail="短期记忆、近期事件、画像、设备与环境状态已按需收集", stage="context", tone="info"),
         ]
         context = self.assembler.assemble(state, event)
-        forced_risk, safety_evidence = self.safety.evaluate(context, event)
+        forced_risk, safety_evidence = self.safety.evaluate(context, event, world_state)
         retrieved = self.knowledge.retrieve(context, event)
         timeline.append(TimelineItem(title="知识检索完成", detail=f"命中 {len(retrieved)} 条家庭规则", stage="knowledge", tone="info"))
         if forced_risk:
@@ -60,7 +64,7 @@ class AgentOrchestrator:
             timeline.append(TimelineItem(title="安全策略已接管", detail="明确风险采用确定性处置，不依赖模型猜测", stage="safety", tone="danger"))
         else:
             try:
-                payload = self.provider.decide(context, event, [item.content for item in retrieved])
+                payload = self.provider.decide(context, event, [item.content for item in retrieved], world_state)
             except Exception as exc:  # Real mode remains demonstrable on timeout/invalid JSON.
                 payload = {"risk_level": "low", "summary": "模型暂不可用，系统已降级为安全陪伴与持续观察。", "evidence": [f"LLM 降级：{type(exc).__name__}"]}
             timeline.append(TimelineItem(title="AI 决策完成", detail="已输出可验证的结构化结论", stage="decision", tone="success"))
@@ -73,6 +77,7 @@ class AgentOrchestrator:
             evidence=list(payload.get("evidence", [])),
             retrieved_knowledge=[item.title for item in retrieved],
             actions=actions,
+            world_state=world_state,
             llm_mode=self.llm_mode, timeline=timeline,
         )
         decision.memory_updates = self.memory.extract(state, event, decision)

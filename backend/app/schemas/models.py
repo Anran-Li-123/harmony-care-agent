@@ -184,6 +184,71 @@ class CareEvent(BaseModel):
         return legacy_event_to_target(value)
 
 
+class PersonWorldState(BaseModel):
+    person_id: str
+    role: Literal["elder", "child"]
+    name: str
+    location: str | None = None
+    status: str = "normal"
+    responsive: Literal["normal", "unknown", "responsive", "unresponsive"] = "normal"
+
+
+class RobotWorldState(BaseModel):
+    device_id: str
+    location: str | None = None
+    online: bool = True
+    status: str = "ready"
+
+
+class RoomWorldState(BaseModel):
+    room_id: str
+    occupied_by: list[str] = Field(default_factory=list)
+    lighting: str = "normal"
+    risk_indicator: Literal["normal", "concern", "high"] = "normal"
+
+
+class DeviceWorldState(BaseModel):
+    device_id: str
+    device_type: str
+    location: str | None = None
+    online: bool = True
+    status: str = "ready"
+
+
+class SensorWorldState(BaseModel):
+    sensor_id: str
+    label: str
+    location: str
+    status: Literal["normal", "triggered", "offline"] = "normal"
+    value: Any = None
+
+
+class ActiveWorldEvent(BaseModel):
+    event_id: str
+    target_person_id: str | None = None
+    type: str
+    source: str
+    timestamp: str
+
+
+class RiskArea(BaseModel):
+    location: str
+    reason: str
+    risk_indicator: Literal["concern", "high"]
+
+
+class WorldState(BaseModel):
+    timestamp: str = Field(default_factory=now_iso)
+    people: dict[str, PersonWorldState] = Field(default_factory=dict)
+    robot: RobotWorldState | None = None
+    rooms: dict[str, RoomWorldState] = Field(default_factory=dict)
+    devices: dict[str, DeviceWorldState] = Field(default_factory=dict)
+    sensors: dict[str, SensorWorldState] = Field(default_factory=dict)
+    environment: EnvironmentState = Field(default_factory=EnvironmentState)
+    active_event: ActiveWorldEvent | None = None
+    risk_areas: list[RiskArea] = Field(default_factory=list)
+
+
 class DeviceAction(BaseModel):
     target: ActionTarget
     action: str
@@ -236,6 +301,7 @@ class AgentDecision(BaseModel):
     profile_candidates: list[ProfileCandidate] = Field(default_factory=list)
     profile_changes: list[ProfileChange] = Field(default_factory=list)
     timeline: list[TimelineItem] = Field(default_factory=list)
+    world_state: WorldState | None = None
     llm_mode: Literal["mock", "openai-compatible"] = "mock"
 
 
