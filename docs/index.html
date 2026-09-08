@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Harmony Care Agent · 面向"一老一小"全场景看护的鸿蒙分布式智能陪伴机器人（比赛 Web Demo）</title>
+<meta name="description" content="国创杯·产业赛道 Web Demo · Harmony Care Agent —— 基于家庭世界模型、混合安全决策与鸿蒙 Mock 设备能力的可解释陪伴 Agent。" />
+<style>
+  :root{
+    --bg:#eef3f9;
+    --bg2:#f6f9fc;
+    --panel:#ffffff;
+    --panel2:#f6fafd;
+    --line:#e1e8f0;
+    --line2:#eef3f8;
+    --blue:#5b83a8;
+    --blue-deep:#3f6488;
+    --blue-soft:#a9c4da;
+    --blue-tint:#e8f1f8;
+    --violet:#8a94b8;
+    --mint:#8fb3a3;
+    --text:#30404f;
+    --muted:#6f8296;
+    --muted2:#93a3b5;
+    --ok:#6fae8f;
+    --warn:#c9a56a;
+    --danger:#c9837d;
+    --radius:16px;
+    --shadow:0 18px 46px rgba(70,95,120,.12);
+    --shadow-sm:0 8px 22px rgba(70,95,120,.08);
+    --glow-blue:0 0 0 1px rgba(91,131,168,.18), 0 12px 32px rgba(91,131,168,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:"Inter","PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--bg);color:var(--text);line-height:1.65;overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-2;
+    background:
+      radial-gradient(880px 580px at 88% -4%, rgba(169,196,218,.40), transparent 62%),
+      radial-gradient(720px 620px at 0% 14%, rgba(138,148,184,.30), transparent 58%),
+      radial-gradient(900px 620px at 46% 108%, rgba(143,179,163,.28), transparent 60%),
+      linear-gradient(180deg,#eef3f9,#f8fbfe);
+  }
+  body::after{
+    content:"";position:fixed;inset:0;z-index:-1;opacity:.35;
+    background-image:
+      linear-gradient(rgba(91,131,168,.05) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(91,131,168,.05) 1px,transparent 1px);
+    background-size:54px 54px;
+    mask-image:radial-gradient(circle at 50% 28%,#000 45%,transparent 82%);
+  }
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 28px}
+  section{padding:92px 0}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:12px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--blue);font-weight:700;margin-bottom:16px;
+  }
+  .eyebrow::before{content:"";width:26px;height:2px;background:linear-gradient(90deg,var(--blue),transparent)}
+  h2.sec-title{font-size:clamp(26px,3.4vw,42px);font-weight:800;letter-spacing:.3px;line-height:1.22;color:#26333f}
+  .sec-title .grad{background:linear-gradient(90deg,#3f6488,#6d97bd);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sec-sub{color:var(--muted);max-width:760px;margin-top:16px;font-size:16px}
+  .sec-sub b{color:var(--blue-deep);font-weight:600}
+  .chip{
+    display:inline-flex;align-items:center;gap:7px;
+    padding:7px 14px;border-radius:999px;font-size:12.5px;font-weight:600;
+    background:var(--blue-tint);color:var(--blue-deep);border:1px solid rgba(91,131,168,.22);
+  }
+  .chip.purple{background:#eef0fa;color:#5c6488;border-color:rgba(138,148,184,.28)}
+  .chip.green{background:#eaf3ee;color:#4c7f63;border-color:rgba(143,179,163,.30)}
+  .chip.warn{background:#f7efe1;color:#a07f43;border-color:rgba(201,165,106,.35)}
+  .chip.danger{background:#f7e8e6;color:#a56059;border-color:rgba(201,131,125,.35)}
+
+  /* ---------- 导航 ---------- */
+  nav{
+    position:fixed;top:0;left:0;right:0;z-index:50;
+    backdrop-filter:blur(14px);
+    background:rgba(248,251,254,.80);
+    border-bottom:1px solid var(--line);
+  }
+  .nav-inner{display:flex;align-items:center;gap:28px;height:66px}
+  .brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:.3px}
+  .brand .logo{width:38px;height:38px;flex:0 0 auto;display:grid;place-items:center}
+  .brand .logo img{width:100%;height:100%;object-fit:contain}
+  .brand .txt b{font-size:16px;display:block;line-height:1.1;color:#26333f}
+  .brand .txt span{font-size:11px;color:var(--muted);font-weight:500;letter-spacing:.4px}
+  .nav-links{display:flex;gap:24px;margin-left:auto;font-size:14px;color:var(--muted)}
+  .nav-links a{transition:.2s;font-weight:500}
+  .nav-links a:hover{color:var(--blue-deep)}
+  .nav-cta{display:flex;gap:10px;margin-left:6px}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:11px 18px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;
+    transition:.22s;white-space:nowrap;border:1px solid transparent;
+  }
+  .btn-blue{background:linear-gradient(135deg,#6d97bd,#4f7396);color:#fff;box-shadow:0 10px 24px rgba(91,131,168,.30)}
+  .btn-blue:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(91,131,168,.42)}
+  .btn-ghost{border-color:var(--line);color:var(--text);background:#fff}
+  .btn-ghost:hover{background:var(--blue-tint);border-color:rgba(91,131,168,.35)}
+  .menu-toggle{display:none;background:#fff;border:1px solid var(--line);color:var(--text);border-radius:9px;width:40px;height:40px;cursor:pointer}
+
+  /* ---------- Hero ---------- */
+  .hero{padding:150px 0 84px;position:relative}
+  .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+  .hero .en{font-size:clamp(15px,1.6vw,20px);font-weight:800;letter-spacing:2.5px;color:var(--blue);text-transform:uppercase}
+  .hero h1{font-size:clamp(28px,3.6vw,44px);font-weight:900;line-height:1.18;letter-spacing:.3px;margin:18px 0 6px;color:#23303c}
+  .hero h1 .grad{background:linear-gradient(95deg,#3f6488 0%,#5b83a8 45%,#8a94b8 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p.lead{color:var(--muted);margin:18px 0 26px;font-size:16.5px;max-width:580px}
+  .hero p.lead b{color:var(--blue-deep);font-weight:700}
+  .try-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .btn-try{
+    display:inline-flex;align-items:center;gap:10px;
+    padding:16px 34px;border-radius:999px;font-size:17px;font-weight:800;cursor:pointer;
+    background:linear-gradient(135deg,#6d97bd,#4f7396);color:#fff;
+    border:none;box-shadow:0 14px 30px rgba(91,131,168,.35);transition:.22s;
+  }
+  .btn-try:hover{transform:translateY(-2px);box-shadow:0 18px 38px rgba(91,131,168,.5)}
+  .btn-try .ic{font-size:18px}
+  .try-hint{font-size:12.5px;color:var(--muted)}
+  .hero-tags{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+  .hero-tag{
+    display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--text);
+    padding:8px 14px;border-radius:10px;background:#fff;border:1px solid var(--line);transition:.2s;
+  }
+  .hero-tag i{width:7px;height:7px;border-radius:50%;background:var(--blue)}
+  .hero-tag.purple i{background:var(--violet)}
+  .hero-tag.green i{background:var(--mint)}
+  .hero-tag.warn i{background:var(--warn)}
+  .hero-tag.danger i{background:var(--danger)}
+
+  /* 右侧 agent logo 卡 */
+  .agent-card{
+    position:relative;border-radius:28px;
+    background:linear-gradient(160deg,rgba(255,255,255,.85),rgba(232,241,248,.7));
+    border:1px solid var(--line);
+    box-shadow:var(--shadow);min-height:440px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:14px;text-align:center;padding:30px;overflow:hidden;
+  }
+  .agent-card::before{content:"";position:absolute;inset:0;border-radius:28px;
+    background:radial-gradient(360px 240px at 50% 30%,rgba(169,196,218,.45),transparent);pointer-events:none}
+  .agent-card .tag{position:absolute;top:18px;left:18px;display:inline-flex;align-items:center;gap:6px;
+    font-size:11.5px;font-weight:700;color:var(--blue-deep);background:#fff;border:1px solid var(--line);
+    padding:6px 12px;border-radius:999px;z-index:2}
+  .agent-card .tag .dot{width:7px;height:7px;border-radius:50%;background:#cfdcea;animation:pulse 1.6s infinite}
+  .agent-card .ring{width:300px;height:300px;border-radius:50%;display:grid;place-items:center;
+    background:radial-gradient(circle at 50% 45%,rgba(255,255,255,.9),rgba(232,241,248,.4) 60%,transparent 75%);
+    position:relative;z-index:1}
+  .agent-card .ring::after{content:"";position:absolute;inset:-10px;border-radius:50%;
+    border:1px dashed rgba(91,131,168,.35);animation:spin 30s linear infinite}
+  .agent-card .ring img{width:74%;height:74%;object-fit:contain;filter:drop-shadow(0 14px 28px rgba(91,131,168,.25))}
+  .agent-card .at{font-weight:900;font-size:22px;color:#3f6488;letter-spacing:1px;z-index:1}
+  .agent-card .as{font-size:13px;color:var(--muted);z-index:1;max-width:340px}
+  .agent-card .stats{display:flex;gap:14px;margin-top:8px;z-index:1}
+  .agent-card .stats .s{font-size:11px;color:var(--muted);padding:5px 10px;border-radius:8px;background:#fff;border:1px solid var(--line)}
+
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ---------- 产品介绍 ---------- */
+  .about-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+  .factor-list{display:flex;flex-direction:column;gap:12px;margin-top:24px}
+  .factor{
+    display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:14px;
+    background:#fff;border:1px solid var(--line);transition:.2s;box-shadow:var(--shadow-sm);
+  }
+  .factor:hover{border-color:rgba(91,131,168,.35);transform:translateX(4px)}
+  .factor .k{width:38px;height:38px;border-radius:10px;flex:0 0 auto;display:grid;place-items:center;background:var(--blue-tint);font-size:18px}
+  .factor .k.v{background:#eef0fa}
+  .factor .k.g{background:#eaf3ee}
+  .factor .k.w{background:#f7e8e6}
+  .factor .k.y{background:#f7efe1}
+  .factor b{display:block;font-size:14.5px;color:#26333f;margin-bottom:2px}
+  .factor span{font-size:12.5px;color:var(--muted)}
+  .console-shot{
+    border-radius:22px;overflow:hidden;border:1px solid var(--line);
+    box-shadow:var(--shadow);position:relative;background:#fff;
+  }
+  .console-shot img{width:100%;display:block}
+  .console-shot .cap{
+    position:absolute;left:0;right:0;bottom:0;padding:20px 20px 16px;
+    background:linear-gradient(transparent,rgba(30,45,60,.85));font-size:13px;color:#e5eefa;
+  }
+  .console-shot .cap b{color:#add3ef}
+
+  /* ---------- 技术路线（8 步） ---------- */
+  .pipeline-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:22px;
+    padding:26px;box-shadow:var(--shadow);position:relative;overflow:hidden;margin-top:36px;
+  }
+  .pipeline-card::before{content:"";position:absolute;inset:0;background:radial-gradient(400px 200px at 82% 0%,rgba(169,196,218,.30),transparent);pointer-events:none}
+  .pc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:10px}
+  .pc-head .t{font-weight:800;font-size:16px;color:#26333f}
+  .pc-head .s{font-size:11.5px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+  .pc-live{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ok);font-weight:700}
+  .pc-live .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);animation:pulse 1.4s infinite}
+  .flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+  .step{
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    padding:9px 8px;border-radius:11px;background:var(--panel2);border:1px solid var(--line);
+    min-width:104px;flex:1;text-align:center;font-size:10.5px;color:var(--muted);transition:.25s;position:relative;overflow:hidden;
+  }
+  .step b{display:block;font-size:12px;color:#2c3a46;margin-top:2px}
+  .step .num{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--blue-tint);color:var(--blue-deep);font-weight:800;font-size:11px}
+  .step.active{border-color:rgba(91,131,168,.55);background:var(--blue-tint);box-shadow:var(--glow-blue);transform:translateY(-2px)}
+  .step.active .num{background:var(--blue);color:#fff}
+  .step.active b{color:var(--blue-deep)}
+  .arrow{color:var(--muted2);font-size:11px;font-weight:800}
+  .pc-foot{display:flex;justify-content:space-between;align-items:center;margin-top:18px;flex-wrap:wrap;gap:10px}
+  .pc-foot .cpu{font-size:11.5px;color:var(--muted)}
+  .pc-foot .cpu b{color:var(--blue-deep)}
+
+  /* 核心概念卡 */
+  .concept-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-top:40px}
+  .concept{padding:24px;border-radius:18px;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow-sm);position:relative;overflow:hidden;transition:.2s}
+  .concept:hover{border-color:rgba(91,131,168,.35);box-shadow:var(--shadow)}
+  .concept h4{font-size:16.5px;color:#26333f;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+  .concept h4 .en{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:1px;background:var(--blue-tint);padding:3px 8px;border-radius:6px}
+  .concept p{font-size:13.5px;color:var(--muted);line-height:1.7}
+  .concept .cnum{position:absolute;top:14px;right:18px;font-size:48px;font-weight:900;color:rgba(91,131,168,.12);letter-spacing:-2px;line-height:1}
+
+  /* ---------- 双旗舰场景（可交互） ---------- */
+  .scenarios{background:linear-gradient(180deg,rgba(232,241,248,.55),transparent)}
+  .scene-tabs{display:flex;flex-wrap:wrap;gap:14px;margin:34px 0 24px}
+  .scene-tab{
+    display:flex;gap:14px;align-items:center;padding:18px 20px;border-radius:16px;cursor:pointer;
+    background:#fff;border:1px solid var(--line);transition:.2s;flex:1;min-width:280px;box-shadow:var(--shadow-sm);
+  }
+  .scene-tab:hover{border-color:rgba(91,131,168,.35)}
+  .scene-tab.active{border-color:rgba(91,131,168,.55);background:var(--blue-tint);box-shadow:var(--glow-blue)}
+  .scene-tab .badge{width:48px;height:48px;border-radius:13px;flex:0 0 auto;display:grid;place-items:center;font-size:20px;background:var(--blue-tint)}
+  .scene-tab.active .badge{background:var(--blue);color:#fff}
+  .scene-tab .sc{font-size:12px;color:var(--muted)}
+  .scene-tab .sc b{display:block;font-size:15px;color:#2c3a46;font-weight:800;margin-bottom:3px}
+
+  .play-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:22px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .play-head{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;background:var(--panel2);border-bottom:1px solid var(--line);flex-wrap:wrap;gap:10px}
+  .play-head .ph-l{display:flex;align-items:center;gap:10px;font-weight:800;color:#26333f;font-size:15px}
+  .play-head .ph-r{display:flex;gap:8px;flex-wrap:wrap}
+  .play-body{display:grid;grid-template-columns:1.1fr 1fr;gap:0}
+  .play-left{padding:24px;border-right:1px solid var(--line);min-height:380px}
+  .play-right{padding:24px;min-height:380px;background:var(--panel2)}
+  .play-left h5, .play-right h5{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--blue);margin-bottom:14px;font-weight:800}
+  .room-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .room{border:1px dashed rgba(91,131,168,.30);border-radius:12px;padding:12px;min-height:90px;position:relative;background:#fff;transition:.3s}
+  .room.on{background:#fdf3df;border-color:rgba(201,165,106,.6)}
+  .room.locked{background:#f7e8e6;border-color:rgba(201,131,125,.6)}
+  .room .name{font-size:12px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:6px;font-weight:700}
+  .room .name i{width:6px;height:6px;border-radius:50%;background:var(--blue)}
+  .dev-chips{display:flex;flex-wrap:wrap;gap:5px}
+  .dev-chips span{font-size:10.5px;padding:3px 8px;border-radius:6px;background:var(--blue-tint);color:var(--blue-deep);font-weight:700}
+  .dev-chips span.act{background:#f6e9e7;color:#a56059;animation:pulse 1.2s infinite}
+  .dev-chips span.alert{background:#f7efe1;color:#a07f43}
+
+  .timeline{display:flex;flex-direction:column;gap:10px}
+  .tl-step{display:flex;align-items:flex-start;gap:12px;padding:11px 13px;border-radius:12px;background:#fff;border:1px solid var(--line);opacity:.35;transition:.35s}
+  .tl-step.run{opacity:1;border-color:rgba(91,131,168,.45);background:var(--blue-tint)}
+  .tl-step .tk{width:24px;height:24px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-size:11px;font-weight:800;background:var(--blue-tint);color:var(--blue-deep);margin-top:1px}
+  .tl-step.run .tk{background:var(--blue);color:#fff}
+  .tl-step .tt{font-size:12.5px;font-weight:800;color:#2c3a46;margin-bottom:2px}
+  .tl-step .td{font-size:11.5px;color:var(--muted);line-height:1.55}
+
+  .action-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .apill{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:9px;font-size:11.5px;font-weight:700;background:#fff;border:1px solid var(--line);color:#3a4a5a}
+  .apill code{font-family:ui-monospace,Menlo,monospace;color:var(--blue-deep);font-size:11px}
+  .apill.risk-high{color:#a56059;border-color:rgba(201,131,125,.45);background:#f7e8e6}
+  .apill.risk-med{color:#a07f43;border-color:rgba(201,165,106,.45);background:#f7efe1}
+  .apill.risk-low{color:#4c7f63;border-color:rgba(143,179,163,.40);background:#eaf3ee}
+  .apill.goal-done{color:#4c7f63;border-color:rgba(143,179,163,.40);background:#eaf3ee}
+  .apill.mem-done{color:#3f6488;border-color:rgba(91,131,168,.40);background:var(--blue-tint)}
+
+  .play-foot{padding:16px 22px;border-top:1px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+  .play-foot .hint{font-size:12px;color:var(--muted)}
+  .btn-play{
+    display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:11px;
+    background:linear-gradient(135deg,#6d97bd,#4f7396);color:#fff;font-weight:800;cursor:pointer;
+    border:none;box-shadow:0 8px 20px rgba(91,131,168,.30);transition:.22s;font-size:14px;
+  }
+  .btn-play:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(91,131,168,.45)}
+  .btn-play:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  .btn-feedback{
+    display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:11px;
+    background:#fff;color:var(--blue-deep);font-weight:700;cursor:pointer;
+    border:1px solid rgba(91,131,168,.40);transition:.2s;font-size:13px;
+  }
+  .btn-feedback:hover{background:var(--blue-tint)}
+
+  .resolved-card{
+    margin:18px 22px;padding:18px;border-radius:14px;background:linear-gradient(135deg,rgba(143,179,163,.18),rgba(91,131,168,.12));border:1px solid rgba(91,131,168,.30);
+  }
+  .resolved-card h6{font-size:14px;font-weight:800;color:#3f6488;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .resolved-card p{font-size:12.5px;color:#3a4a5a;margin-bottom:8px}
+  .lock-note{font-size:12px;color:#a56059;background:#f7e8e6;padding:10px 14px;border-radius:10px;margin:0 22px 18px;border:1px solid rgba(201,131,125,.30);display:flex;align-items:center;gap:8px}
+
+  /* ---------- 能力 vs 边界 ---------- */
+  .cap-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:42px}
+  .cap-col{padding:26px;border-radius:20px;border:1px solid var(--line);background:#fff;box-shadow:var(--shadow-sm)}
+  .cap-col.has{background:linear-gradient(180deg,rgba(232,241,248,.5),#fff);border-color:rgba(91,131,168,.25)}
+  .cap-col.lacks{background:linear-gradient(180deg,rgba(247,232,230,.35),#fff);border-color:rgba(201,131,125,.20)}
+  .cap-col h3{font-size:18px;font-weight:800;display:flex;align-items:center;gap:9px;margin-bottom:16px;color:#26333f}
+  .cap-col .dotmark{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .cap-col.has .dotmark{background:var(--ok)}
+  .cap-col.lacks .dotmark{background:var(--danger)}
+  .cap-col ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+  .cap-col li{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.6);border:1px solid var(--line);font-size:13.5px;color:#3a4a5a}
+  .cap-col li::before{content:"·";color:var(--blue);font-weight:900;font-size:18px;line-height:1}
+  .cap-col.lacks li::before{color:var(--danger);content:"✕";font-size:13px}
+  .cap-col.has li::before{color:var(--ok);content:"✓";font-size:13px}
+  .disclaimer{margin-top:24px;padding:14px 18px;border-radius:12px;background:rgba(247,232,230,.5);border:1px solid rgba(201,131,125,.30);font-size:13px;color:#7a4a44;display:flex;align-items:flex-start;gap:10px}
+
+  /* ---------- 演示模式 ---------- */
+  .demo-steps{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:30px}
+  .demo-step{padding:18px 20px;border-radius:14px;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow-sm);display:flex;gap:14px;align-items:flex-start}
+  .demo-step .n{flex:0 0 auto;width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#6d97bd,#4f7396);color:#fff;display:grid;place-items:center;font-weight:900;font-size:14px;box-shadow:0 6px 14px rgba(91,131,168,.30)}
+  .demo-step b{display:block;font-size:14px;color:#26333f;margin-bottom:3px}
+  .demo-step p{font-size:12.5px;color:var(--muted);line-height:1.6}
+
+  /* ---------- 快速启动 ---------- */
+  .qs-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:36px}
+  .code-card{padding:20px 22px;border-radius:16px;background:#1f2a36;color:#cdd5df;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .code-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,#6d97bd,#8a94b8)}
+  .code-card h4{font-size:13px;font-weight:800;color:#fff;margin-bottom:12px;display:flex;align-items:center;gap:8px;letter-spacing:.5px}
+  .code-card h4::before{content:"";width:8px;height:8px;border-radius:50%;background:#6d97bd}
+  .code-card pre{margin:0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.75;white-space:pre-wrap;word-break:break-all}
+  .code-card .c-comment{color:#7a8a9b;font-style:italic}
+  .code-card .c-cmd{color:#9bd1ff}
+  .code-card .c-key{color:#e8c97a}
+
+  /* ---------- API 表 ---------- */
+  .api-table{margin-top:36px;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#fff;box-shadow:var(--shadow-sm)}
+  .api-row{display:grid;grid-template-columns:90px 1.4fr 1.6fr;padding:14px 18px;border-bottom:1px solid var(--line);font-size:13.5px;align-items:center;gap:12px}
+  .api-row:last-child{border-bottom:none}
+  .api-row.head{background:var(--panel2);font-weight:800;color:#26333f;font-size:13px}
+  .api-row code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;color:var(--blue-deep);background:var(--blue-tint);padding:3px 8px;border-radius:6px;display:inline-block}
+  .api-row .m{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:800;font-size:12px;text-align:center;padding:4px 8px;border-radius:6px}
+  .api-row .m.GET{background:#eaf3ee;color:#4c7f63}
+  .api-row .m.POST{background:#e8f1f8;color:#3f6488}
+
+  /* ---------- 未来硬件 ---------- */
+  .future-card{margin-top:36px;padding:26px;border-radius:18px;background:linear-gradient(135deg,rgba(232,241,248,.6),rgba(238,240,250,.5));border:1px solid var(--line);box-shadow:var(--shadow-sm)}
+  .future-card h3{font-size:18px;font-weight:800;color:#26333f;margin-bottom:10px;display:flex;align-items:center;gap:9px}
+  .future-card p{font-size:14px;color:var(--muted);line-height:1.75}
+
+  /* ---------- 多设备协同 ---------- */
+  .multi{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:36px}
+  .dev-card{padding:24px;border-radius:18px;background:#fff;border:1px solid var(--line);text-align:center;transition:.25s;box-shadow:var(--shadow-sm)}
+  .dev-card:hover{transform:translateY(-6px);box-shadow:var(--shadow)}
+  .dev-card .bico{width:54px;height:54px;border-radius:15px;margin:0 auto 14px;display:grid;place-items:center;font-size:26px;background:var(--blue-tint);box-shadow:0 8px 20px rgba(91,131,168,.18)}
+  .dev-card h4{font-size:15.5px;margin-bottom:5px;color:#26333f}
+  .dev-card p{font-size:12.5px;color:var(--muted);line-height:1.6}
+  .dev-card .load{font-size:11.5px;color:var(--blue-deep);font-weight:700;margin-top:10px;padding:4px 10px;border-radius:999px;background:var(--blue-tint);display:inline-block}
+
+  /* ---------- 页脚 ---------- */
+  footer{border-top:1px solid var(--line);padding:52px 0 40px;margin-top:20px;background:rgba(255,255,255,.5)}
+  .foot-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:24px;align-items:center}
+  .foot-brand{display:flex;align-items:center;gap:12px;font-weight:800;color:#26333f}
+  .foot-brand .logo{width:34px;height:34px}
+  .foot-brand .logo img{width:100%;height:100%;object-fit:contain}
+  .foot-meta{font-size:12.5px;color:var(--muted2)}
+  .foot-tags{display:flex;gap:10px;flex-wrap:wrap}
+  .foot-tags span{font-size:12px;color:var(--muted);padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:#fff}
+
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed;left:50%;bottom:40px;transform:translateX(-50%) translateY(20px);
+    background:#2a3947;color:#fff;padding:13px 22px;border-radius:12px;font-size:14px;font-weight:600;
+    box-shadow:0 16px 40px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.3s;z-index:99;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ---------- 滚动 ---------- */
+  .reveal{opacity:0;transform:translateY(26px);transition:.7s cubic-bezier(.2,.7,.3,1)}
+  .reveal.in{opacity:1;transform:none}
+
+  /* ---------- 响应式 ---------- */
+  @media(max-width:980px){
+    .hero-grid,.about-grid,.play-body,.cap-grid,.qs-grid,.demo-steps{grid-template-columns:1fr;gap:28px}
+    .play-left{border-right:none;border-bottom:1px solid var(--line)}
+    .multi{grid-template-columns:1fr 1fr}
+    .concept-grid{grid-template-columns:1fr}
+    .nav-links{display:none}
+    .nav-cta .btn-ghost{display:none}
+    .menu-toggle{display:block}
+    .api-row{grid-template-columns:1fr;gap:6px}
+    .api-row .m{justify-self:start}
+  }
+  @media(max-width:600px){
+    .multi{grid-template-columns:1fr}
+    .hero{padding-top:118px}
+    .agent-card .ring{width:240px;height:240px}
+  }
+</style>
+</head>
+<body>
+
+<!-- 导航 -->
+<nav>
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top">
+      <span class="logo"><img src="logo.svg" alt="logo" /></span>
+      <span class="txt"><b>Harmony Care Agent</b><span>面向"一老一小" · 鸿蒙分布式 · Web Demo</span></span>
+    </a>
+    <div class="nav-links">
+      <a href="#product">产品</a>
+      <a href="#arch">架构</a>
+      <a href="#scenarios">场景</a>
+      <a href="#capabilities">能力</a>
+      <a href="#demo-mode">演示</a>
+      <a href="#quickstart">启动</a>
+    </div>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="#scenarios">查看场景</a>
+      <a class="btn btn-blue" href="#scenarios">立即体验</a>
+    </div>
+    <button class="menu-toggle" onclick="var l=document.querySelector('.nav-links');l.style.display=l.style.display==='flex'?'none':'flex'">☰</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="chip">国创杯 · 产业赛道 · Web Demo</span>
+      <div class="en" style="margin-top:14px">Harmony Care Agent</div>
+      <h1>
+        以家庭世界模型为核心的<br>
+        <span class="grad">鸿蒙分布式智能陪伴 Agent</span>
+      </h1>
+      <p class="lead">陪伴机器人作为家庭中的<b>移动智能中枢</b>：理解人物、房间、设备和风险状态，建立 <b>看护目标</b>，执行 <b>具身行动</b>，协同全屋设备，最后依据反馈完成 <b>目标评估与事件记忆收束</b>。</p>
+      <p class="lead" style="margin-top:0">当前版本是可重复运行的 <b>Web Mock Demo</b>，展示架构、交互与闭环。<b>不</b>表示已接入真实 HarmonyOS 设备、软总线、机器人或传感器硬件。</p>
+      <div class="try-row">
+        <a class="btn-try" id="tryBtn" href="https://github.com/robot999666/harmony-care-agent" target="_blank" rel="noopener noreferrer"><span class="ic">🚀</span>立即体验（GitHub 仓库）</a>
+        <span class="try-hint">比赛演示模式 · Mock Mode 离线可重复运行</span>
+      </div>
+      <div class="hero-tags">
+        <span class="hero-tag"><i></i>Home World Model</span>
+        <span class="hero-tag purple"><i></i>Hybrid Safety</span>
+        <span class="hero-tag green"><i></i>CareGoal + Agent Plan</span>
+        <span class="hero-tag warn"><i></i>Harmony Device Mock</span>
+        <span class="hero-tag danger"><i></i>Feedback Closed Loop</span>
+      </div>
+    </div>
+
+    <!-- 右侧 · Agent 形象（已用 logo） -->
+    <div class="agent-card reveal">
+      <span class="tag"><span class="dot"></span>Agent Identity</span>
+      <div class="ring">
+        <img src="logo.svg" alt="Harmony Care Agent" />
+      </div>
+      <div class="at">Harmony Care Agent</div>
+      <div class="as">为家庭而生的分布式陪伴智能体<br/>一老一小 · 看见、决策、行动、闭环</div>
+      <div class="stats">
+        <span class="s">Web Mock</span>
+        <span class="s">No API Key</span>
+        <span class="s">Reproducible</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- 产品介绍 -->
+<section id="product">
+  <div class="wrap">
+    <div class="eyebrow reveal">产品介绍 · PRODUCT</div>
+    <h2 class="sec-title reveal">认识 <span class="grad">Harmony Care Agent</span><br>它把家庭变成一个"懂你"的世界</h2>
+    <div class="about-grid" style="margin-top:46px">
+      <div class="reveal">
+        <p class="sec-sub" style="margin-top:0">Harmony Care Agent 是一个"以家庭为单位"的分布式智能陪伴体。它不只陪单个用户说话，而是把<b>家庭</b>视为一个持续运转的世界——里面有老人、儿童、机器人、房间、设备、传感器和<b>风险区域</b>。它理解这个世界的状态，定义要看护的目标，调度设备能力去执行，再用反馈闭环把每一次结果收束成长期记忆。</p>
+        <div class="factor-list">
+          <div class="factor"><span class="k">🧠</span><div><b>Home World Model · 家庭空间世界模型</b><span>统一表达人 / 房间 / 设备 / 传感器 / 风险区域</span></div></div>
+          <div class="factor"><span class="k v">🛡️</span><div><b>Hybrid Safety · 混合安全决策</b><span>高风险场景由确定性规则优先保护；普通陪伴可受控输出</span></div></div>
+          <div class="factor"><span class="k g">🎯</span><div><b>CareGoal + Agent Plan · 目标与计划</b><span>先定义要保护什么，再形成可解释的行动步骤</span></div></div>
+          <div class="factor"><span class="k y">📱</span><div><b>Harmony Device Capability · 设备能力层</b><span>机器人 / 灯光 / 门锁 / 屏 / Watch / Phone 通过 Mock Adapter 匹配</span></div></div>
+          <div class="factor"><span class="k w">🔁</span><div><b>Feedback Loop · 反馈闭环</b><span>显式反馈更新世界状态，触发 Goal Evaluation 与记忆收束</span></div></div>
+        </div>
+      </div>
+      <div class="console-shot reveal">
+        <img src="console.png" alt="Agent 控制台与家庭数字孪生实况" />
+        <div class="cap"><b>家庭数字孪生 · 控制台实况</b> —— 家庭上下文 / 实时场景 / Agent Pipeline / 多终端协同输出</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 系统架构 / 8 步技术路线 -->
+<section id="arch" style="background:linear-gradient(180deg,rgba(232,241,248,.5),transparent)">
+  <div class="wrap">
+    <div class="eyebrow reveal">技术架构 · ARCHITECTURE</div>
+    <h2 class="sec-title reveal">一次陪伴动作，如何被<span class="grad">编排出来</span>？</h2>
+    <p class="sec-sub reveal">从家庭世界状态到可解释的闭环行动：8 步核心技术路线，每一步都有<b>可观察的输入与输出</b>。</p>
+
+    <!-- 8 步流水线 -->
+    <div class="pipeline-card reveal">
+      <div class="pc-head">
+        <div><div class="t">Core Tech Roadmap · 核心技术路线</div><div class="s">Household Context → Goal → Plan → Mock Action → Feedback → Memory</div></div>
+        <span class="pc-live"><span class="dot"></span>Flow · Live</span>
+      </div>
+      <div class="flow" id="flow1">
+        <div class="step active" data-i="0"><span class="num">1</span>Household + Static Context<b>+ Current Event</b></div>
+        <span class="arrow">›</span>
+        <div class="step" data-i="1"><span class="num">2</span>Home World Model<b>家庭空间世界模型</b></div>
+        <span class="arrow">›</span>
+        <div class="step" data-i="2"><span class="num">3</span>Hybrid Safety<b>混合安全决策</b></div>
+        <span class="arrow">›</span>
+        <div class="step" data-i="3"><span class="num">4</span>Care Agent<b>看护智能体</b></div>
+      </div>
+      <div class="flow" id="flow2" style="margin-top:8px">
+        <div class="step" data-i="4"><span class="num">5</span>CareGoal + Agent Plan<b>目标与行动计划</b></div>
+        <span class="arrow">›</span>
+        <div class="step" data-i="5"><span class="num">6</span>Harmony Device Capability<b>Mock 设备能力匹配</b></div>
+        <span class="arrow">›</span>
+        <div class="step" data-i="6"><span class="num">7</span>Embodied Execution<b>具身执行 + Feedback</b></div>
+        <span class="arrow">›</span>
+        <div class="step" data-i="7"><span class="num">8</span>Goal Evaluation<b>+ Episodic Memory</b></div>
+      </div>
+      <div class="pc-foot">
+        <span class="cpu">最终回写：<b>Dynamic User Profile</b> · 动态用户画像审慎演化</span>
+        <span class="cpu">运行模式：<b style="color:var(--ok)">● Web Mock · MOCK_MODE=true</b></span>
+      </div>
+    </div>
+
+    <!-- 5 个核心概念卡 -->
+    <div class="concept-grid">
+      <div class="concept reveal"><span class="cnum">01</span><h4>Home World Model <span class="en">家庭空间世界模型</span></h4><p>统一表达<b>老人、儿童、机器人、房间、设备、传感器和风险区域</b>。所有决策都基于同一份世界状态，避免数据口径不一致。</p></div>
+      <div class="concept reveal"><span class="cnum">02</span><h4>Hybrid Safety <span class="en">混合安全决策</span></h4><p>跌倒、儿童独处门口事件等高风险场景由<b>确定性规则优先保护</b>；普通陪伴使用受控模型输出。安全永远在模型之前。</p></div>
+      <div class="concept reveal"><span class="cnum">03</span><h4>CareGoal / Agent Plan <span class="en">看护目标与计划</span></h4><p>先定义<b>要保护什么</b>（如"避免老人跌倒后无人响应"），再形成<b>可解释的行动步骤</b>。设备动作由能力层匹配，<b>而非前端硬编码</b>。</p></div>
+      <div class="concept reveal"><span class="cnum">04</span><h4>Harmony Device Capability <span class="en">鸿蒙设备能力层</span></h4><p>机器人、灯光、门锁、智慧屏、Watch、Phone 均经 <b>Mock Adapter</b> 产生可验证执行结果；<b>离线设备不会被选择</b>，保证不会向不存在的设备下发指令。</p></div>
+      <div class="concept reveal" style="grid-column:1/-1"><span class="cnum">05</span><h4>Feedback Closed Loop <span class="en">反馈闭环与事件记忆</span></h4><p>显式反馈会更新世界状态，触发 <b>Goal Evaluation</b> 和必要的 Follow-up，再<b>收束事件记忆</b>。每一次"做了没做成"都被认真记录与回放。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 双旗舰场景（可交互） -->
+<section id="scenarios" class="scenarios">
+  <div class="wrap">
+    <div class="eyebrow reveal">旗舰场景 · FLAGSHIP SCENARIOS</div>
+    <h2 class="sec-title reveal">两个<span class="grad">旗舰场景</span>，完整跑通 Agent 闭环</h2>
+    <p class="sec-sub reveal">/lab 默认展示这两个场景。选择场景 → 自动加载 <b>family_30d_stable</b> 与正确人物、当前事件，重置 Runtime 状态。点击 <b>「开始场景」</b> 启动闭环动画；到达 <b>Await Feedback</b> 时点击对应反馈按钮完成收束。</p>
+
+    <!-- 场景 Tab -->
+    <div class="scene-tabs reveal">
+      <div class="scene-tab active" data-s="0"><span class="badge">🚨</span><span class="sc"><b>场景 1 · 老人夜间疑似跌倒</b>Fall Event → HIGH → Light / Robot / Watch / Phone</span></div>
+      <div class="scene-tab" data-s="1"><span class="badge">🚪</span><span class="sc"><b>场景 2 · 儿童独处陌生敲门</b>Door Event → Entrance HIGH → Door LOCKED</span></div>
+    </div>
+
+    <!-- 场景播放器 -->
+    <div class="play-card reveal" id="playCard">
+      <!-- 由 JS 渲染 -->
+    </div>
+  </div>
+</section>
+
+<!-- 能力与边界 -->
+<section id="capabilities">
+  <div class="wrap">
+    <div class="eyebrow reveal">能力与边界 · CAPABILITIES</div>
+    <h2 class="sec-title reveal">已经实现的 <span class="grad">Web Demo 能力</span><br>与仍未触及的<span class="grad">真实世界</span></h2>
+    <p class="sec-sub reveal">比赛 Web Demo 在 <b>Web 端完整跑通</b>了"家庭世界模型 → 目标 → 计划 → Mock 执行 → 反馈闭环" 的可观察闭环。<b>不</b>等同于真实硬件演示。</p>
+
+    <div class="cap-grid">
+      <div class="cap-col has reveal">
+        <h3><span class="dotmark"></span>已实现 · Web Demo 能力</h3>
+        <ul>
+          <li>Web Digital Twin（家庭数字孪生）</li>
+          <li>Household Context（家庭上下文）</li>
+          <li>Static Historical Context（静态家庭历史）</li>
+          <li>Home World Model（家庭空间世界模型）</li>
+          <li>Hybrid Safety（混合安全决策）</li>
+          <li>CareGoal / Agent Plan（看护目标与计划）</li>
+          <li>Mock Harmony Device Capability（鸿蒙设备能力 Mock 匹配）</li>
+          <li>Embodied Robot Simulation（具身机器人仿真）</li>
+          <li>Feedback Closed Loop（反馈闭环）</li>
+          <li>Goal Evaluation + Memory Evolution（目标评估与记忆演化）</li>
+        </ul>
+      </div>
+      <div class="cap-col lacks reveal">
+        <h3><span class="dotmark"></span>当前未实现 · 真实能力</h3>
+        <ul>
+          <li>Real HarmonyOS Device（真实鸿蒙设备）</li>
+          <li>Real Harmony SoftBus（真实鸿蒙软总线）</li>
+          <li>Real Robot Hardware（真实机器人硬件）</li>
+          <li>Real Sensor Hardware（真实传感器硬件）</li>
+          <li>ROS2 Navigation（机器人导航）</li>
+          <li>SLAM / Vision Model（视觉与定位）</li>
+          <li>Medical Diagnosis（医学诊断）</li>
+          <li>真实紧急服务调用（120 / 119 等）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="disclaimer reveal">
+      <span style="font-size:18px">⚠️</span>
+      <div>所有家庭数据与人物均为虚构。系统<b>不构成医疗诊断、治疗建议或真实看护承诺</b>。比赛 Web Demo 仅用于展示架构、交互与闭环思路。</div>
+    </div>
+  </div>
+</section>
+
+<!-- 比赛演示模式 -->
+<section id="demo-mode" style="background:linear-gradient(180deg,rgba(232,241,248,.45),transparent)">
+  <div class="wrap">
+    <div class="eyebrow reveal">比赛演示模式 · DEMO MODE</div>
+    <h2 class="sec-title reveal">Competition Demo Guide<br><span class="grad">约 2–3 分钟完成答辩演示</span></h2>
+    <p class="sec-sub reveal">首页选择 <b>「进入智能家庭演示」</b>，或直接访问 <code style="font-family:ui-monospace,Menlo,monospace;background:var(--blue-tint);padding:2px 8px;border-radius:6px;color:var(--blue-deep)">/lab</code>。<b>/lab</b> 默认展示两个旗舰场景。Advanced Experiment 默认折叠（包含家庭历史切换、自定义 Event、旧 Preset、AI 场景构造、JSON / TXT / MD 导入），比赛演示<b>不需要展开</b>。</p>
+
+    <div class="demo-steps">
+      <div class="demo-step reveal"><div class="n">1</div><div><b>选择「老人夜间疑似跌倒」，点击「开始场景」</b><p>观察 Fall Event → HIGH → CareGoal → Agent Plan → 灯光 / Robot / Watch / Phone → Await Feedback。</p></div></div>
+      <div class="demo-step reveal"><div class="n">2</div><div><b>点击「老人回应：我没事」</b><p>确认 HIGH → MEDIUM，Goal COMPLETED，Memory PENDING → RESOLVED。</p></div></div>
+      <div class="demo-step reveal"><div class="n">3</div><div><b>保持当前家庭，选择「儿童独处陌生敲门」，点击「开始场景」</b><p>观察 Entrance HIGH、Door LOCKED、Robot 前往玄关、SmartScreen / Watch / Phone 协同。</p></div></div>
+      <div class="demo-step reveal"><div class="n">4</div><div><b>点击「家长拒绝访客」</b><p>确认 Goal COMPLETED，Door 继续 LOCKED，Memory RESOLVED。</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 快速启动 -->
+<section id="quickstart">
+  <div class="wrap">
+    <div class="eyebrow reveal">快速启动 · QUICK START</div>
+    <h2 class="sec-title reveal">从干净环境启动 <span class="grad">后端 + 前端</span></h2>
+    <p class="sec-sub reveal">需要 <b>Python 3.10+</b>、<b>Node.js 20+</b>。Mock Mode 无需 API Key，全部比赛 Demo 可离线可重复运行。</p>
+
+    <div class="qs-grid">
+      <div class="code-card reveal">
+        <h4>Terminal 1 · Backend</h4>
+        <pre><span class="c-comment"># 后端（FastAPI）</span>
+<span class="c-cmd">cd</span> backend
+<span class="c-cmd">python -m pip install -r requirements.txt</span>
+<span class="c-cmd">uvicorn app.main:app --host 0.0.0.0 --port 8000</span>
+
+健康检查：<span class="c-key">http://localhost:8000/api/health</span></pre>
+      </div>
+      <div class="code-card reveal">
+        <h4>Terminal 2 · Frontend</h4>
+        <pre><span class="c-comment"># 前端（Next.js）</span>
+<span class="c-cmd">cd</span> frontend
+<span class="c-cmd">npm install</span>
+<span class="c-cmd">npm run dev</span>
+
+打开：<span class="c-key">http://localhost:3000</span>
+/lab 演示：<span class="c-key">http://localhost:3000/lab</span></pre>
+      </div>
+    </div>
+
+    <div class="code-card reveal" style="margin-top:18px">
+      <h4>Mock Mode · 根目录 .env（前端后端共享）</h4>
+      <pre><span class="c-key">PUBLIC_FRONTEND_URLS</span>=http://localhost:3000,https://harmony-care-agent.vercel.app,https://676512d0.r28.cpolar.top
+<span class="c-key">PUBLIC_BACKEND_URL</span>=https://4d84a994.r28.cpolar.top
+<span class="c-key">NEXT_PUBLIC_API_BASE_URL</span>=https://4d84a994.r28.cpolar.top
+<span class="c-key">BACKEND_HOST</span>=0.0.0.0
+<span class="c-key">BACKEND_PORT</span>=8000
+<span class="c-key">MOCK_MODE</span>=true
+<span class="c-key">MODEL_NAME</span>=qwen3.8-flash</pre>
+    </div>
+  </div>
+</section>
+
+<!-- API 概览 -->
+<section id="api" style="background:linear-gradient(180deg,rgba(232,241,248,.4),transparent)">
+  <div class="wrap">
+    <div class="eyebrow reveal">API 概览 · API</div>
+    <h2 class="sec-title reveal">Mock-only 后端 <span class="grad">端点</span></h2>
+    <p class="sec-sub reveal">以下端点覆盖家庭历史加载、事件触发、目标反馈、Context 导入与重置。Mock Mode 下全部返回本地可预测结果，<b>不消耗真实模型 Token</b>。</p>
+
+    <div class="api-table reveal">
+      <div class="api-row head"><span>Method</span><span>Endpoint</span><span>用途</span></div>
+      <div class="api-row"><span class="m GET">GET</span><code>/api/demo/histories</code><span>获取静态家庭历史选项</span></div>
+      <div class="api-row"><span class="m POST">POST</span><code>/api/demo/histories/{history_id}/load</code><span>加载历史并清除旧 Runtime Goal</span></div>
+      <div class="api-row"><span class="m POST">POST</span><code>/api/events/trigger</code><span>触发 Current Event 并执行 Care Agent</span></div>
+      <div class="api-row"><span class="m POST">POST</span><code>/api/goals/{goal_id}/feedback</code><span>提交当前 Goal 的显式反馈</span></div>
+      <div class="api-row"><span class="m POST">POST</span><code>/api/context/upload</code><span>导入 JSON Context 或 TXT / MD 规则</span></div>
+      <div class="api-row"><span class="m POST">POST</span><code>/api/reset?preset_id=...</code><span>重置到兼容 Preset</span></div>
+    </div>
+
+    <div class="code-card reveal" style="margin-top:24px">
+      <h4>Validation · 自检</h4>
+      <pre><span class="c-comment"># 后端测试强制 MOCK_MODE=true</span>
+<span class="c-cmd">cd</span> backend && <span class="c-cmd">python -m pytest</span>
+
+<span class="c-comment"># 前端类型 + 构建</span>
+<span class="c-cmd">cd</span> ../frontend && <span class="c-cmd">npx tsc --noEmit</span> && <span class="c-cmd">npm run build</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- 多端协同 -->
+<section id="multi" style="padding-top:0">
+  <div class="wrap">
+    <div class="eyebrow reveal">多端协同 · MULTI-DEVICE</div>
+    <h2 class="sec-title reveal">一个 Agent，<span class="grad">多类设备</span>被按需调度</h2>
+    <p class="sec-sub reveal">Mock Adapter 按能力匹配；<b>离线设备不会被选择</b>。这意味着网站演示的所有设备动作都有<b>可验证的执行结果</b>。</p>
+    <div class="multi">
+      <div class="dev-card reveal"><div class="bico">🤖</div><h4>Companion Robot</h4><p>移动智能中枢；导航 / 观察 / 语音陪伴 / 引导。</p><span class="load">Mock Adapter ✓</span></div>
+      <div class="dev-card reveal"><div class="bico">💡</div><h4>Smart Light</h4><p>卧室 / 客厅灯光；夜间风险事件立即 ON。</p><span class="load">Mock Adapter ✓</span></div>
+      <div class="dev-card reveal"><div class="bico">🚪</div><h4>Smart Door Lock</h4><p>玄关门锁；当前安全策略下<b>只允许保持锁定</b>，绝不自动 unlock。</p><span class="load">Mock Adapter ✓</span></div>
+      <div class="dev-card reveal"><div class="bico">📺</div><h4>SmartScreen</h4><p>门口画面、视频确认；陌生事件下主动拉流。</p><span class="load">Mock Adapter ✓</span></div>
+      <div class="dev-card reveal"><div class="bico">⌚</div><h4>Safety Watch</h4><p>心率 / 跌倒 / 无响应；本地化触发 Fall Event。</p><span class="load">Mock Adapter ✓</span></div>
+      <div class="dev-card reveal"><div class="bico">📱</div><h4>Family Phone</h4><p>高风险告警推送；连接在外家人。</p><span class="load">Mock Adapter ✓</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 未来硬件扩展 -->
+<section id="future" style="padding-top:0">
+  <div class="wrap">
+    <div class="future-card reveal">
+      <h3>🔭 未来硬件扩展</h3>
+      <p>在不改变 <b>Care Agent 核心接口</b>的前提下，可以将 Mock Adapter 替换为经过授权的<b>真实 HarmonyOS 分布式设备、可信传感器和机器人硬件适配器</b>。真实环境运行还需要账户授权、隐私治理、安全测试、人工兜底与合规评估；<b>这些不属于当前比赛 Web Demo 的实现范围</b>。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 页脚 -->
+<footer>
+  <div class="wrap">
+    <div class="foot-inner">
+      <div class="foot-brand">
+        <span class="logo"><img src="logo.svg" alt="logo" /></span>
+        <span>Harmony Care Agent</span>
+      </div>
+      <div class="foot-tags">
+        <span>国创杯 · 产业赛道</span>
+        <span>Web Demo · Mock Mode</span>
+        <span>面向"一老一小"全场景看护</span>
+      </div>
+      <div class="foot-meta">© 2026 Harmony Care Agent 团队演示项目 · 数据均为虚构</div>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast">比赛演示模式（/lab）即将上线，敬请期待 🚀</div>
+
+<script>
+/* ---------- 双旗舰场景数据 ---------- */
+const SCENARIOS = [
+  {
+    title: `场景 1 · 老人夜间疑似跌倒`,
+    family: `family_30d_stable · 老人在卧室 · 时间 22:00`,
+    timeline: [
+      { t: `Fall Event · 跌倒事件`, d: `fall_probability = 0.94 · 卧室 22:00` },
+      { t: `Hybrid Safety`, d: `Risk = HIGH · 确定性规则优先保护` },
+      { t: `CareGoal`, d: `确认老人状态 + 通知家人` },
+      { t: `Agent Plan`, d: `Light ON → Robot Navigate → Observe → Speak → Watch → Phone` },
+      { t: `Embodied Execution`, d: `灯光 / 机器人 / 手表 / 手机 按顺序执行` },
+      { t: `Await Feedback`, d: `等待本人回应，再触发 Goal Evaluation` }
+    ],
+    rooms: {
+      bedroom:  { name: `卧室`,   devs: [`👤 老人`],           on: true,  alert: true  },
+      living:   { name: `客厅`,   devs: [`🤖 Robot`, `💡 灯`], on: true,  alert: false },
+      kitchen:  { name: `厨房`,   devs: [],                   on: false, alert: false },
+      entrance: { name: `玄关`,   devs: [`📱 Phone`],          on: false, alert: false }
+    },
+    actions: [
+      { k: `risk`,  v: `HIGH`,         cls: `risk-high` },
+      { k: `goal`,  v: `PENDING`,      cls: ``          },
+      { k: `light`, v: `bedroom ON`,   cls: ``          },
+      { k: `robot`, v: `navigate`,     cls: ``          },
+      { k: `watch`, v: `定位同步`,     cls: ``          },
+      { k: `phone`, v: `高风险告警`,   cls: ``          }
+    ],
+    feedback: { label: `老人回应：我没事`, hint: `本人反馈 → Goal Evaluation` },
+    resolved: {
+      risk:   { k: `risk`,  v: `HIGH → MEDIUM`, cls: `risk-med` },
+      goal:   { k: `goal`,  v: `COMPLETED`,     cls: `goal-done` },
+      memory: { k: `memory`, v: `PENDING → RESOLVED`, cls: `mem-done` }
+    }
+  },
+  {
+    title: `场景 2 · 儿童独处陌生敲门`,
+    family: `family_30d_stable · 儿童在客厅 · 玄关陌生敲门`,
+    timeline: [
+      { t: `Door Event · 门口事件`, d: `玄关检测到陌生敲门 · 儿童单独在家` },
+      { t: `Hybrid Safety`, d: `Entrance = HIGH · 保护优先` },
+      { t: `CareGoal`, d: `保护儿童 + 门禁锁定 + 通知家长` },
+      { t: `Agent Plan`, d: `Door LOCKED → Robot 引导 → SmartScreen → Watch → Phone` },
+      { t: `Embodied Execution`, d: `门锁保持 LOCKED · 机器人前往玄关 · 屏拉流 · 手表提醒 · 手机告警` },
+      { t: `Await Feedback`, d: `等待家长反馈，再触发 Goal Evaluation` }
+    ],
+    rooms: {
+      bedroom:  { name: `卧室`,   devs: [],                   on: false, alert: false },
+      living:   { name: `客厅`,   devs: [`👶 儿童`, `🤖 Robot`], on: false, alert: true  },
+      kitchen:  { name: `厨房`,   devs: [],                   on: false, alert: false },
+      entrance: { name: `玄关`,   devs: [`🚪 Door · LOCKED`],  on: true,  locked: true, alert: true }
+    },
+    actions: [
+      { k: `risk`,   v: `Entrance HIGH`, cls: `risk-high` },
+      { k: `goal`,   v: `PENDING`,      cls: ``          },
+      { k: `door`,   v: `LOCKED`,       cls: ``          },
+      { k: `robot`,  v: `前往玄关`,     cls: ``          },
+      { k: `screen`, v: `拉流`,         cls: ``          },
+      { k: `watch`,  v: `提醒`,         cls: ``          },
+      { k: `phone`,  v: `高风险告警`,   cls: ``          }
+    ],
+    feedback: { label: `家长拒绝访客`, hint: `家长反馈 → Goal Evaluation` },
+    resolved: {
+      risk:   { k: `risk`,  v: `Entrance HIGH → MEDIUM`, cls: `risk-med` },
+      goal:   { k: `goal`,  v: `COMPLETED`,              cls: `goal-done` },
+      memory: { k: `memory`, v: `PENDING → RESOLVED`,     cls: `mem-done` }
+    }
+  }
+];
+
+/* ---------- 渲染场景播放器 ---------- */
+function renderScenario(idx){
+  const s = SCENARIOS[idx];
+  const card = document.getElementById(`playCard`);
+  const order = [`bedroom`,`living`,`kitchen`,`entrance`];
+  const roomHtml = order.map(k=>{
+    const r = s.rooms[k];
+    if(!r) return ``;
+    const cls = r.locked ? `locked` : (r.on ? `on` : ``);
+    const devHtml = r.devs.map(d=>{
+      let extra = ``;
+      if(r.locked && d.includes(`Door`)) extra = `act`;
+      else if(r.alert) extra = `alert`;
+      return `<span class="${extra}">${d}</span>`;
+    }).join(``);
+    return `<div class="room ${cls}"><div class="name"><i></i>${r.name}</div><div class="dev-chips">${devHtml}</div></div>`;
+  }).join(``);
+
+  const tlHtml = s.timeline.map((st,i)=>`<div class="tl-step" data-step="${i}"><span class="tk">${i+1}</span><div><div class="tt">${st.t}</div><div class="td">${st.d}</div></div></div>`).join(``);
+
+  const apHtml = s.actions.map(a=>`<span class="apill ${a.cls}"><code>${a.k}</code>=${a.v}</span>`).join(``);
+
+  card.innerHTML = `
+    <div class="play-head">
+      <div class="ph-l">${s.title}</div>
+      <div class="ph-r"><span class="chip">${s.family}</span></div>
+    </div>
+    <div class="play-body">
+      <div class="play-left">
+        <h5>Home World Model · 家庭世界状态</h5>
+        <div class="room-grid" id="roomGrid">${roomHtml}</div>
+        <div class="action-pills" style="margin-top:18px">
+          <span class="chip">⚙ Agent Action Pipeline</span>
+        </div>
+        <div class="action-pills" id="actionPills">${apHtml}</div>
+      </div>
+      <div class="play-right">
+        <h5>Care Agent Activity · 智能体活动</h5>
+        <div class="timeline" id="timeline">${tlHtml}</div>
+      </div>
+    </div>
+    <div class="play-foot">
+      <div class="hint" id="playHint">点击「开始场景」观察 6 步闭环动画，到达 Await Feedback 后选择反馈</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn-play" id="playBtn">▶ 开始场景</button>
+        <div id="fbArea" style="display:none"><button class="btn-feedback" id="fbBtn">${s.feedback.label}</button></div>
+      </div>
+    </div>
+    <div id="resolvedArea"></div>
+  `;
+
+  document.getElementById(`playBtn`).addEventListener(`click`, ()=>playScenario(idx));
+  document.getElementById(`fbBtn`).addEventListener(`click`, ()=>resolveScenario(idx));
+}
+
+/* ---------- 播放动画 ---------- */
+function playScenario(idx){
+  const s = SCENARIOS[idx];
+  const btn = document.getElementById(`playBtn`);
+  const hint = document.getElementById(`playHint`);
+  if(btn.disabled) return;
+  btn.disabled = true;
+  hint.textContent = `场景运行中…`;
+  document.getElementById(`resolvedArea`).innerHTML = ``;
+  document.getElementById(`fbArea`).style.display = `none`;
+
+  // Reset timeline
+  document.querySelectorAll(`#timeline .tl-step`).forEach(el=>el.classList.remove(`run`));
+
+  const steps = document.querySelectorAll(`#timeline .tl-step`);
+  let i = 0;
+  const runOne = ()=>{
+    if(i>=steps.length){
+      hint.textContent = `已到达 Await Feedback · 请选择反馈`;
+      document.getElementById(`fbArea`).style.display = `inline-flex`;
+      btn.disabled = false;
+      btn.textContent = `↻ 重新运行`;
+      return;
+    }
+    steps[i].classList.add(`run`);
+    i++;
+    setTimeout(runOne, 700);
+  };
+  runOne();
+}
+
+/* ---------- 完成收束 ---------- */
+function resolveScenario(idx){
+  const s = SCENARIOS[idx];
+  const area = document.getElementById(`resolvedArea`);
+  const r = s.resolved;
+  let extra = ``;
+  if(idx===1){
+    extra = `<div class="lock-note">🔒 门锁在当前安全策略中只允许保持锁定，绝不自动 unlock。</div>`;
+  }
+  area.innerHTML = `
+    ${extra}
+    <div class="resolved-card">
+      <h6>✅ Goal Evaluation · 目标评估</h6>
+      <p>${s.feedback.hint}</p>
+      <div class="action-pills">
+        <span class="apill ${r.risk.cls}"><code>${r.risk.k}</code>=${r.risk.v}</span>
+        <span class="apill ${r.goal.cls}"><code>${r.goal.k}</code>=${r.goal.v}</span>
+        <span class="apill ${r.memory.cls}"><code>${r.memory.k}</code>=${r.memory.v}</span>
+      </div>
+    </div>
+  `;
+  document.getElementById(`fbArea`).style.display = `none`;
+  document.getElementById(`playHint`).textContent = `场景已收束 · 可点击「重新运行」再演一次`;
+}
+
+/* ---------- Tab 切换 ---------- */
+document.querySelectorAll(`.scene-tab`).forEach(tab=>{
+  tab.addEventListener(`click`, ()=>{
+    document.querySelectorAll(`.scene-tab`).forEach(t=>t.classList.remove(`active`));
+    tab.classList.add(`active`);
+    renderScenario(parseInt(tab.dataset.s,10));
+  });
+});
+renderScenario(0);
+
+/* ---------- 立即体验：GitHub 仓库（<a target="_blank"> 已原生打开） ---------- */
+const TRY_URL = `https://github.com/robot999666/harmony-care-agent`;
+document.getElementById(`tryBtn`).addEventListener(`click`, ()=>{
+  // 链接由 <a target="_blank"> 原生打开；此处可加埋点统计点击
+  console.log(`[try] open`, TRY_URL);
+});
+
+/* ---------- 8 步流水线动态点亮 ---------- */
+const flowSteps = document.querySelectorAll(`#flow1 .step, #flow2 .step`);
+let hi = 0;
+setInterval(()=>{
+  flowSteps.forEach((st,i)=>st.classList.toggle(`active`, i===hi));
+  hi = (hi+1) % flowSteps.length;
+}, 1100);
+
+/* ---------- 滚动 reveal ---------- */
+const io = new IntersectionObserver((es)=>{
+  es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add(`in`); io.unobserve(e.target);} });
+},{threshold:.12});
+document.querySelectorAll(`.reveal`).forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
