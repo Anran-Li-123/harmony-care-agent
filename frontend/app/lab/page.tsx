@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Dashboard } from "@/components/Dashboard";
 
 export const metadata: Metadata = {
-  title: "在线实验室 | Harmony Care Agent",
-  description: "组合家庭看护上下文，运行 Agent 并观察多终端协同与记忆更新。",
+  title: "旗舰场景演示 | Harmony Care Agent",
+  description: "运行老人跌倒与儿童独处两条旗舰场景，观察具身机器人和鸿蒙全屋设备完成主动看护闭环。",
 };
 
 export default function LabPage() {

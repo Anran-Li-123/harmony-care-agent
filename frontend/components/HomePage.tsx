@@ -1,20 +1,34 @@
 import Link from "next/link";
+import { competitionSceneList } from "@/lib/competitionDemo";
 import { SiteHeader } from "./SiteHeader";
 
-const pipeline = ["家庭感知", "上下文汇集", "安全策略", "Agent 判断", "终端协同", "记忆演化"];
-const memoryLayers = [
-  ["01", "短期工作记忆", "保存当前会话正在使用的信息，并限制长度与生命周期。"],
-  ["02", "时间 / 事件记忆", "记录何时、何地发生了什么，以及系统采取了哪些行动。"],
-  ["03", "长期用户画像", "只从明确表达或多次一致证据中形成稳定偏好与习惯。"],
-  ["04", "家庭知识规则", "承载安全规则、陪伴原则和可追溯的家庭配置。"],
+const technologyChain = [
+  ["多模态环境感知", "Multimodal Perception", "接收门磁、跌倒感知、Watch 与家庭环境变化。"],
+  ["家庭空间世界模型", "Home World Model", "统一表达人物、机器人、房间、设备与风险区域。"],
+  ["安全规则与 Agent 规划", "Hybrid Safety + AI Planning", "确定性规则保护高风险场景，Agent 建立 CareGoal 与行动计划。"],
+  ["具身机器人执行", "Embodied Robot Execution", "机器人主动进入家庭空间，观察、询问并陪伴。"],
+  ["鸿蒙全屋设备协同", "Harmony Distributed Capability", "发现并匹配灯光、门锁、智慧屏、Watch 与 Phone 能力。"],
+  ["反馈与目标评估", "Feedback & Goal Evaluation", "依据本人或监护人反馈重新评估风险与目标。"],
+  ["长期记忆与个性化", "Long-term Memory", "将闭环结果写入事件记忆，审慎演化动态用户画像。"],
 ];
-const scenarios = [
-  ["老人夜间安全", "跌倒、长时静止或终端离线时，优先请求现场确认并同步监护人。"],
-  ["儿童居家看护", "门磁或手表安全区变化可以在没有对话时直接成为 Agent 输入。"],
-  ["日常陪伴", "结合可靠偏好提供低打扰陪伴，不把普通需求升级为紧急事件。"],
-  ["习惯长期演化", "通过连续时间记录观察作息变化，避免从一次行为推断长期画像。"],
+
+const requirementMapping = [
+  ["具身智能物理交互", "Robot Navigation / Observation / Speech", "机器人移动、现场观察与语音交互"],
+  ["鸿蒙分布式能力", "Device Registry / Capability Matching / Action Routing", "全屋设备注册、能力匹配与动作路由"],
+  ["一老一小", "Shared Household + Independent Memory / Profile", "共享家庭空间，各自保有独立记忆与画像"],
+  ["完整闭环", "Event / Goal / Action / Feedback / Evaluation", "从事件到反馈评估的可追踪闭环"],
+  ["环境感知", "Sensor + Home World Model", "把传感器变化转化为家庭空间状态"],
+  ["长期陪伴", "Episodic Memory + Dynamic User Profile", "记录真实闭环结果并持续形成个性化"],
 ];
-const architecture = ["用户对话 / 家庭传感器", "上下文组装器", "安全策略与知识检索", "语言模型判断", "动作路由器", "机器人 / 手表 / 手机", "记忆提取与画像更新"];
+
+const innovations = [
+  ["01", "具身闭环主动看护", "不是“检测 → 报警”，而是“感知 → 行动 → 反馈 → 调整”。"],
+  ["02", "鸿蒙分布式能力协同", "机器人能够发现并调用全屋设备能力。"],
+  ["03", "面向家庭空间的 World Model", "Agent 基于人物、机器人、房间和设备状态规划。"],
+  ["04", "一老一小统一家庭智能", "同一 Household 中同时理解老人和儿童。"],
+  ["05", "长期动态记忆", "从 Cold Start 到 Dynamic User Profile 持续演化。"],
+  ["06", "Hybrid Safety", "高风险由确定性规则保护，普通陪伴由 LLM 提供智能与个性化。"],
+];
 
 export function HomePage() {
   return <div className="project-page">
@@ -24,45 +38,46 @@ export function HomePage() {
         <div className="project-hero-grid" aria-hidden="true" />
         <div className="project-container project-hero-layout">
           <div className="project-hero-copy">
-            <span className="section-kicker">大学生创新项目 · Web 演示系统</span>
-            <h1>面向“一老一小”全场景看护的<br/><em>鸿蒙分布式智能陪伴</em>机器人系统</h1>
-            <p>以 Agent（智能体）为家庭智能中枢，把用户记忆、环境感知、安全判断与机器人、手表、监护人手机连接为一条可观察、可复现的照护链路。</p>
-            <div className="project-hero-actions"><Link className="project-primary-link" href="/lab">进入在线实验室 <span>→</span></Link><a className="project-secondary-link" href="#solution">查看系统方案</a></div>
-            <ul className="project-proof-list" aria-label="项目特点"><li>支持全新与历史用户</li><li>安全规则优先</li><li>多终端协同</li><li>记忆变化可追溯</li></ul>
+            <span className="section-kicker">具身智能 × 鸿蒙分布式 × 一老一小</span>
+            <h1>面向“一老一小”全场景看护的<br/><em>鸿蒙分布式智能陪伴机器人系统</em></h1>
+            <p>让机器人从“发现问题”走向“理解环境、主动行动、协同全屋、持续反馈”。以具身陪伴机器人为移动智能中枢，实现主动闭环看护与长期陪伴。</p>
+            <div className="hero-tech-tags" aria-label="核心技术标签"><span>Embodied AI</span><span>Harmony Distributed Intelligence</span><span>Care Agent</span><span>Long-term Memory</span></div>
+            <div className="project-hero-actions"><Link className="project-primary-link" href="/lab?demo=elder-fall">进入智能家庭演示 <span>→</span></Link><a className="project-secondary-link" href="#solution">查看技术方案</a></div>
+            <ul className="project-proof-list"><li>机器人主动进入空间</li><li>鸿蒙全屋能力协同</li><li>老人儿童同一家庭</li><li>Event → Feedback 完整闭环</li></ul>
           </div>
-          <div className="hero-system-card" aria-label="系统链路概览">
-            <div className="hero-card-head"><span>家庭看护链路</span><i>实时模拟</i></div>
-            <div className="hero-signal"><span>环境与传感器事件</span><svg viewBox="0 0 480 90" role="img" aria-label="动态传感器信号"><path d="M0 52 L35 44 L68 55 L99 30 L128 61 L160 42 L190 48 L222 20 L252 65 L286 39 L318 51 L350 27 L382 60 L416 38 L448 45 L480 29"/></svg></div>
-            <div className="hero-pipeline">{pipeline.map((stage, index) => <div key={stage}><span>{String(index + 1).padStart(2, "0")}</span><b>{stage}</b>{index < pipeline.length - 1 && <i>→</i>}</div>)}</div>
-            <div className="hero-terminal-row"><div><span className="terminal-dot cyan"/><b>机器人</b><small>现场行动</small></div><div><span className="terminal-dot violet"/><b>手表</b><small>即时触达</small></div><div><span className="terminal-dot blue"/><b>手机</b><small>监护反馈</small></div></div>
+          <div className="hero-system-card hero-home-card" aria-label="轻量家庭数字孪生概览">
+            <div className="hero-card-head"><span>HOME INTELLIGENCE TWIN</span><i>Web Simulation</i></div>
+            <div className="hero-mini-home">
+              <div className="mini-room mini-living"><span>LIVING ROOM</span><b>🧒 小宇</b><i className="mini-screen">▱</i></div>
+              <div className="mini-room mini-bedroom"><span>BEDROOM</span><b>👴 李爷爷</b><i className="mini-light">☼</i></div>
+              <div className="mini-room mini-entrance"><span>ENTRANCE</span><i className="mini-lock">▣ LOCKED</i></div>
+              <div className="mini-room mini-hallway"><span>HALLWAY</span></div>
+              <div className="mini-robot"><span/><span/><b>H</b><small>EMBODIED HUB</small></div>
+              <svg viewBox="0 0 600 340" aria-hidden="true"><path d="M145 112 C225 150 245 205 295 235 S395 250 470 235"/><path d="M302 234 C352 174 420 142 488 110"/></svg>
+            </div>
+            <div className="hero-capability-row"><span>感知</span><i>→</i><span>理解</span><i>→</i><span>行动</span><i>→</i><span>协同</span><i>→</i><span>反馈</span></div>
           </div>
         </div>
       </section>
 
-      <section className="project-section" id="background"><div className="project-container"><span className="section-kicker">项目背景</span><div className="section-title-row"><h2>让分散的家庭设备形成连续、克制的看护能力</h2><p>看护并不只发生在风险出现的瞬间。系统需要理解“谁、在何处、刚刚发生了什么、过去有哪些可信记录”，再决定是否行动。</p></div><div className="problem-grid"><article><span>01</span><h3>信息分散</h3><p>对话、环境、手表与家庭传感器各自孤立，难以形成完整上下文。</p></article><article><span>02</span><h3>人因差异</h3><p>全新用户与长期陪伴用户拥有不同信息量，却需要进入同一条可靠流程。</p></article><article><span>03</span><h3>安全与打扰</h3><p>明确风险必须快速响应，普通陪伴又不应被误判为紧急事件。</p></article></div></div></section>
+      <section className="project-section" id="background"><div className="project-container"><span className="section-kicker">项目定位</span><div className="section-title-row"><h2>机器人不是独立设备，而是家庭中的移动智能中枢</h2><p>它连接多设备感知、家庭空间理解、安全策略、主动行动和长期记忆，让分散的全屋能力围绕一个明确的看护目标协同工作。</p></div><div className="problem-grid"><article><span>01</span><h3>主动进入现场</h3><p>风险出现后，机器人可以移动到目标空间，观察并发起确认，而不只发送消息。</p></article><article><span>02</span><h3>全屋共同响应</h3><p>灯光、门锁、智慧屏、Watch 与 Phone 按当前可用能力参与同一计划。</p></article><article><span>03</span><h3>反馈决定下一步</h3><p>系统等待真实反馈，再决定目标完成、继续等待或升级处理。</p></article></div></div></section>
 
-      <section className="project-section project-section-tint" id="solution"><div className="project-container"><span className="section-kicker">总体方案</span><div className="section-title-row"><h2>从家庭事件到设备反馈的完整闭环</h2><p>先由确定性安全策略处理明确风险，再让模型结合有限上下文与家庭规则给出结构化判断，最后路由至可用终端。</p></div><div className="solution-flow">{pipeline.map((item, index) => <article key={item}><span>{String(index + 1).padStart(2, "0")}</span><b>{item}</b><small>{["对话、手表、门磁与环境", "按需收集近期可信信息", "明确风险不依赖模型猜测", "输出风险、证据与结论", "选择仍在线的合适设备", "记录事件并审慎更新画像"][index]}</small></article>)}</div><Link className="inline-lab-card" href="/lab"><span>可运行演示</span><b>进入 `/lab` 在线实验室</b><i>组合场景并查看完整动画 →</i></Link></div></section>
+      <section className="project-section project-section-tint" id="solution"><div className="project-container"><span className="section-kicker">核心技术链</span><div className="section-title-row"><h2>从家庭感知到长期陪伴的七层闭环</h2><p>每一层都有明确输入与输出；高风险判断由规则兜底，设备表现由实际执行结果驱动。</p></div><div className="solution-flow competition-tech-flow">{technologyChain.map(([title,en,body],index) => <article key={en}><span>{String(index+1).padStart(2,"0")}</span><small>{en}</small><b>{title}</b><p>{body}</p>{index<technologyChain.length-1 && <i>↓</i>}</article>)}</div></div></section>
 
-      <section className="project-section memory-story" id="memory"><div className="project-container"><span className="section-kicker">上下文与记忆</span><div className="section-title-row"><h2>让“刚刚发生”与“长期了解”保持清晰边界</h2><p>事件记忆不等于用户画像。系统保留来源与可信度，避免把一次行为直接当作长期偏好，也允许完全空白的冷启动（Cold Start）。</p></div><div className="memory-layer-grid">{memoryLayers.map(([number,title,body]) => <article key={number}><span>{number}</span><div><h3>{title}</h3><p>{body}</p></div></article>)}</div></div></section>
+      <section className="project-section comparison-section"><div className="project-container"><span className="section-kicker">为什么不是普通智能家居</span><div className="section-title-row"><h2>从“通知人处理”升级为“机器人带领全屋主动闭环”</h2><p>普通自动化关注单次触发；Care Agent 持续理解人物与空间，并根据反馈调整下一步行动。</p></div><div className="care-comparison"><article><span>传统方案</span><h3>传感器检测 → 手机报警 → 等人处理</h3><div className="comparison-flow"><b>传感器</b><i>→</i><b>手机</b><i>→</i><b>人工处理</b></div></article><article className="care-comparison-active"><span>本方案</span><h3>理解空间、建立目标、主动行动并持续学习</h3><div className="comparison-flow rich"><b>多设备感知</b><i>→</i><b>Home World Model</b><i>→</i><b>CareGoal</b><i>→</i><b>Robot 行动</b><i>→</i><b>全屋协同</b><i>→</i><b>反馈评估</b><i>→</i><b>长期记忆</b></div></article></div><div className="embodied-definition"><i>H</i><div><span>EMBODIED HARMONY NODE</span><b>可移动、可感知、可行动的鸿蒙具身节点</b><p>机器人负责把数字世界中的判断带入真实家庭空间，并组织周边设备共同完成 CareGoal。</p></div></div></div></section>
 
-      <section className="project-section project-section-tint" id="devices"><div className="project-container"><span className="section-kicker">鸿蒙分布式协同</span><div className="section-title-row"><h2>同一个判断，通过不同屏幕和行动抵达家庭成员</h2><p>Web 版本以模拟终端验证接口边界；未来可以把设备适配器替换为 HarmonyOS（鸿蒙操作系统）分布式设备实现。</p></div><div className="device-story-grid"><article><i>H</i><span className="current-badge">当前可模拟</span><h3>陪伴机器人</h3><p>前往指定房间、发起语音确认、提供日常陪伴并反馈执行状态。</p></article><article><i>W</i><span className="current-badge">当前可模拟</span><h3>老人 / 儿童手表</h3><p>提供佩戴、活动、安全区与在线状态，也承接震动提醒和确认操作。</p></article><article><i>P</i><span className="current-badge">当前可模拟</span><h3>监护人手机</h3><p>呈现风险级别、现场处理进度，以及当前是否需要监护人介入。</p></article><article className="future-card"><i>+</i><span className="future-badge">后续接入</span><h3>真实鸿蒙设备</h3><p>通过分布式软总线与设备 SDK 替换现有 Web 适配器，不改变 Agent 核心逻辑。</p></article></div></div></section>
+      <section className="project-section project-section-tint" id="requirements"><div className="project-container"><span className="section-kicker">企业命题要求 × 我们的技术实现</span><div className="section-title-row"><h2>每一项命题要求，都有可运行、可观察的实现对应</h2><p>当前交付是 Web Mock Demo，用于验证系统架构与交互闭环；不宣称已接入真实 HarmonyOS 硬件。</p></div><div className="requirement-map">{requirementMapping.map(([requirement,technology,result]) => <article key={requirement}><span>{requirement}</span><i>→</i><div><b>{technology}</b><p>{result}</p></div></article>)}</div><p className="web-mock-notice"><b>当前边界：</b>Web Simulation / Mock Device Adapter。未来可替换为真实 HarmonyOS 分布式设备实现，Agent 核心链路保持不变。</p></div></section>
 
-      <section className="project-section" id="innovation"><div className="project-container"><span className="section-kicker">核心创新</span><div className="section-title-row"><h2>不只展示一个聊天窗口，而是展示可追踪的家庭智能系统</h2><p>项目把上下文、规则、模型、设备与记忆放进同一条可复现链路，便于评审理解系统为何行动、如何反馈。</p></div><div className="innovation-grid"><article><b>安全优先</b><p>跌倒、儿童独处门开等明确风险由确定性规则先处理。</p></article><article><b>同链路冷启动</b><p>空白用户与历史用户使用同一编排流程，只是可用证据不同。</p></article><article><b>跨终端路由</b><p>机器人、手表与手机按事件和在线状态获得不同动作。</p></article><article><b>画像审慎演化</b><p>高风险字段不由一次普通交互推断，所有变化保留来源。</p></article></div></div></section>
+      <section className="project-section flagship-section" id="scenarios"><div className="project-container"><span className="section-kicker">两个旗舰场景</span><div className="section-title-row"><h2>两条链路讲清主动看护与鸿蒙协同</h2><p>比赛演示只突出老人夜间安全和儿童独处安全，进入后自动准备 30 天稳定家庭，但不会自动运行。</p></div><div className="flagship-grid">{competitionSceneList.map((scene,index) => <article key={scene.id} className={`flagship-${scene.id}`}><span>{scene.eyebrow}</span><h3>{scene.title}</h3><p>{scene.subtitle}</p><div className="flagship-flow">{scene.flow.map((step,stepIndex) => <div key={step}><b>{step}</b>{stepIndex<scene.flow.length-1 && <i>→</i>}</div>)}</div><Link href={`/lab?demo=${scene.query}`}>进入演示 <span>0{index+1} →</span></Link></article>)}</div></div></section>
 
-      <section className="project-section project-section-tint" id="scenarios"><div className="project-container"><span className="section-kicker">典型应用场景</span><div className="section-title-row"><h2>既能演示紧急事件，也能解释普通陪伴与长期变化</h2><p>实验室提供八个完整示例，并允许独立组合用户、记忆、当前状态和新事件。</p></div><div className="scenario-story-grid">{scenarios.map(([title,body],index) => <article key={title}><span>0{index+1}</span><h3>{title}</h3><p>{body}</p></article>)}</div></div></section>
+      <section className="project-section project-section-tint" id="innovation"><div className="project-container"><span className="section-kicker">核心创新</span><div className="section-title-row"><h2>先讲主动闭环，再讲分布式、空间理解与长期智能</h2><p>创新不来自功能数量，而来自机器人、全屋设备、反馈和长期上下文在同一 CareGoal 下协同。</p></div><div className="innovation-grid innovation-grid-six">{innovations.map(([number,title,body]) => <article key={number}><span>{number}</span><b>{title}</b><p>{body}</p></article>)}</div></div></section>
 
-      <section className="project-section architecture-section" id="architecture"><div className="project-container"><span className="section-kicker">系统架构</span><div className="section-title-row"><h2>模块边界清晰，便于从 Web 模拟逐步替换为真实能力</h2><p>语言模型、数据存储、知识检索和设备适配器均可替换；安全策略独立存在，不被模型调用结果覆盖。</p></div><div className="architecture-track">{architecture.map((item,index) => <div key={item}><span>{String(index+1).padStart(2,"0")}</span><b>{item}</b>{index<architecture.length-1 && <i>→</i>}</div>)}</div></div></section>
+      <section className="project-section architecture-section" id="architecture"><div className="project-container"><span className="section-kicker">统一技术术语</span><div className="section-title-row"><h2>一套清晰语言贯穿首页与演示</h2><p>Home World Model、CareGoal、Agent Plan、Harmony Device Capability、Embodied Execution、Feedback Loop、Episodic Memory 与 Dynamic User Profile。</p></div><div className="architecture-track terminology-track">{["Home World Model","CareGoal","Agent Plan","Harmony Device Capability","Embodied Execution","Feedback Loop","Episodic Memory","Dynamic User Profile"].map((item,index) => <div key={item}><span>{String(index+1).padStart(2,"0")}</span><b>{item}</b>{index<7 && <i>→</i>}</div>)}</div></div></section>
 
-      <section className="project-section project-section-tint" id="capabilities"><div className="project-container"><span className="section-kicker">当前成果与能力</span><div className="capability-split"><div><h2>已经贯通的 Web 演示能力</h2><ul><li>八类完整示例与可组合场景数据</li><li>Mock（模拟）与真实模型两种运行模式</li><li>安全策略、知识检索与结构化判断</li><li>机器人、手表与手机反馈动画</li><li>工作记忆、时间记忆与画像变化展示</li><li>版本化 JSON 和知识文件导入</li></ul></div><div><h2>仍属于后续工作的能力</h2><ul className="future-list"><li>真实 HarmonyOS 分布式硬件接入</li><li>真实家庭传感器与可靠设备认证</li><li>持久化用户账户、授权与数据管理</li><li>面向真实照护的长期测试与合规验证</li><li>正式机器人外观与硬件结构设计</li></ul></div></div></div></section>
+      <section className="project-section" id="safety"><div className="project-container"><span className="section-kicker">安全与工程边界</span><div className="section-title-row"><h2>Hybrid Safety 让高风险保护不依赖模型猜测</h2><p>当前系统用于比赛技术演示，不构成医疗诊断、治疗建议或真实看护承诺。</p></div><div className="safety-grid"><article><b>确定性规则优先</b><p>跌倒和儿童独处门口事件先由安全规则建立高优先级 CareGoal。</p></article><article><b>执行结果可核验</b><p>只展示真实匹配并成功执行的设备能力，门锁不会自动解锁。</p></article><article><b>记忆审慎演化</b><p>事件记录不直接等于长期画像，所有变化保留证据来源。</p></article></div></div></section>
 
-      <section className="project-section" id="safety"><div className="project-container"><span className="section-kicker">安全与隐私边界</span><div className="section-title-row"><h2>演示“如何更谨慎地判断”，而不是替代真实照护</h2><p>所有示例数据均为虚构。可穿戴状态只用于请求确认或通知监护人，系统不会根据模拟数据诊断疾病。</p></div><div className="safety-grid"><article><b>不展示隐藏推理</b><p>页面只呈现输入证据、命中规则、风险级别、行动与记忆变化。</p></article><article><b>高风险画像受限</b><p>医疗、药物、过敏与紧急联系人等字段不能由一次普通事件推断。</p></article><article><b>当前为技术演示</b><p>不构成医疗器械、诊断工具、治疗建议或真实看护承诺。</p></article></div></div></section>
-
-      <section className="project-section project-section-tint" id="roadmap"><div className="project-container"><span className="section-kicker">后续路线</span><div className="roadmap"><article><span>当前</span><h3>可交互 Web 验证</h3><p>验证数据结构、Agent 编排、多终端路由与记忆策略。</p></article><article><span>下一阶段</span><h3>鸿蒙终端原型</h3><p>逐步替换模拟适配器，接入可信设备和受控家庭规则。</p></article><article><span>长期</span><h3>持续评估与合规</h3><p>在授权、隐私、安全测试和人工兜底下开展真实环境研究。</p></article></div></div></section>
-
-      <section className="project-section team-section" id="team"><div className="project-container"><span className="section-kicker">项目团队</span><div className="team-placeholder"><div><span>TEAM INFORMATION</span><h2>团队信息待补充</h2><p>此区域将用于展示指导老师、项目负责人和算法、硬件、产品与 Web 方向成员。当前不使用占位姓名。</p></div><i>待补充</i></div></div></section>
-
-      <section className="project-lab-cta"><div className="project-container"><span className="section-kicker">在线实验室</span><h2>亲自组合一次家庭事件，观察 Agent 如何判断与行动</h2><p>从完整示例、结构化组合或 AI 构造开始；没有文件也可以立即体验。</p><Link className="project-primary-link" href="/lab">打开 `/lab` 在线实验室 <span>→</span></Link></div></section>
+      <section className="project-lab-cta"><div className="project-container"><span className="section-kicker">COMPETITION DEMO</span><h2>选择一个旗舰场景，看机器人如何带领全屋完成闭环</h2><p>进入后先确认 READY，再点击“开始场景”。</p><Link className="project-primary-link" href="/lab?demo=elder-fall">进入智能家庭演示 <span>→</span></Link></div></section>
     </main>
-    <footer className="project-footer"><div className="project-container"><div><b>Harmony Care Agent</b><span>面向“一老一小”的鸿蒙分布式智能陪伴系统 Web 演示</span></div><div><Link href="/lab">在线实验室</Link><a href="#architecture">系统架构</a><a href="#safety">安全边界</a></div><p>演示数据均为虚构 · 不构成医疗诊断、治疗建议或真实看护承诺</p></div></footer>
+    <footer className="project-footer"><div className="project-container"><div><b>Harmony Care Agent</b><span>面向“一老一小”的鸿蒙分布式智能陪伴机器人系统</span></div><div><Link href="/lab?demo=elder-fall">旗舰演示</Link><a href="#solution">技术链</a><a href="#safety">安全边界</a></div><p>当前为 Web Mock Demo · 演示数据均为虚构 · 不构成医疗诊断、治疗建议或真实看护承诺</p></div></footer>
   </div>;
 }

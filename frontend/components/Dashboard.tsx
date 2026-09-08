@@ -15,6 +15,8 @@ import { HistorySelector } from "./HistorySelector";
 import { HouseholdEventSelector } from "./HouseholdEventSelector";
 import { WorldStatePanel } from "./WorldStatePanel";
 import { FeedbackSimulationPanel } from "./FeedbackSimulationPanel";
+import { CompetitionDemoPicker } from "./CompetitionDemoPicker";
+import { COMPETITION_SCENES, competitionSceneFromQuery, type CompetitionSceneId } from "@/lib/competitionDemo";
 
 type PlaybackStatus = "idle" | "playing" | "paused" | "complete";
 const finalStage = 7;
@@ -29,6 +31,7 @@ export function Dashboard() {
   const [histories, setHistories] = useState<HistoryOption[]>([]);
   const [options, setOptions] = useState<ScenarioOptions | null>(null);
   const [activePreset, setActivePreset] = useState("night-fall");
+  const [activeDemo, setActiveDemo] = useState<CompetitionSceneId>("elder-fall");
   const [decision, setDecision] = useState<Decision | null>(null);
   const [stage, setStage] = useState(-1);
   const [playback, setPlayback] = useState<PlaybackStatus>("idle");
@@ -59,11 +62,13 @@ export function Dashboard() {
   useEffect(() => { void (async () => {
     try {
       const [loadedPresets, loadedOptions, legacyDraft, health, loadedHistories] = await Promise.all([api.presets(), api.scenarioOptions(), api.scenario("night-fall"), api.health(), api.histories()]);
-      const initial = await api.loadHistory("family_30d_stable");
+      const requestedDemo = competitionSceneFromQuery(new URLSearchParams(window.location.search).get("demo"));
+      const competitionScene = COMPETITION_SCENES[requestedDemo];
+      const initial = await api.loadHistory(competitionScene.historyId);
       setPresets(loadedPresets); setOptions(loadedOptions); setRuntime(health); setHistories(loadedHistories);
       setDraft({ ...legacyDraft, title: "30天稳定家庭", description: "固定家庭历史已加载，请另行选择本次新事件。", context: initial });
-      setContext(initial); setActivePreset(initial.active_preset);
-      setEvent({ type: "sensor", source: "fall_detector", target_person_id: "elder_li", person: "grandpa", data: { detected: true, location: "bedroom" } });
+      setContext(initial); setActivePreset(initial.active_preset); setActiveDemo(requestedDemo);
+      setEvent(structuredClone(competitionScene.event));
       resetPlayback();
     } catch (err) { setError(err instanceof Error ? err.message : "后端不可用。请启动 FastAPI 服务。"); }
   })(); }, [resetPlayback]);
@@ -98,6 +103,20 @@ export function Dashboard() {
       setDraft((current) => current ? { ...current, title: histories.find((item) => item.id === historyId)?.label || historyId, description: "固定家庭历史已加载，请另行选择本次新事件。", context: next } : current);
       resetPlayback(); setNotice(`已加载家庭历史：${histories.find((item) => item.id === historyId)?.label || historyId}。未自动运行事件。`);
     } catch (err) { setError(err instanceof Error ? err.message : "加载家庭历史失败"); }
+    finally { setBusy(false); }
+  };
+
+  const selectCompetitionDemo = async (demoId: CompetitionSceneId) => {
+    try {
+      setBusy(true); setError(""); setNotice("");
+      const selected = COMPETITION_SCENES[demoId];
+      const next = await api.loadHistory(selected.historyId);
+      setContext(next); setActivePreset(next.active_preset); setActiveDemo(demoId);
+      setDraft((current) => current ? { ...current, title: selected.historyLabel, description: `${selected.title} 已准备，等待手动开始。`, context: next, event: structuredClone(selected.event) } : current);
+      setEvent(structuredClone(selected.event)); resetPlayback();
+      window.history.replaceState(null, "", `/lab?demo=${selected.query}`);
+      setNotice(`旗舰场景已准备：${selected.title}。Runtime Goal / Feedback 已重置，请点击“开始场景”。`);
+    } catch (err) { setError(err instanceof Error ? err.message : "旗舰场景加载失败"); }
     finally { setBusy(false); }
   };
 
@@ -198,27 +217,29 @@ export function Dashboard() {
 
   const deviceContext = stage >= 5 && resultContext ? resultContext : context;
   const awaitingGoal = decision?.care_goal?.status === "awaiting_feedback";
+  const demoStatus = playback === "playing" || playback === "paused" ? "RUNNING" : awaitingGoal ? "WAITING FEEDBACK" : playback === "complete" ? "COMPLETED" : "READY";
 
   return <div className="lab-page">
     <SiteHeader lab />
     <main className="lab-shell">
       <header className="lab-heading">
-        <div><span className="section-kicker">在线实验室</span><h1>家庭看护 Agent 场景模拟</h1><p>选择示例或组合数据，运行后逐步观察“感知—判断—协同—记忆”的变化。</p></div>
+        <div><span className="section-kicker">比赛演示模式</span><h1>鸿蒙分布式主动看护演示</h1><p>选择旗舰场景，观察 Home World Model、CareGoal、具身执行与 Feedback Loop。</p></div>
         <div className="lab-runtime"><span><i/>{runtime.mock_mode ? "稳定演示模式" : "真实模型模式"}</span><small>{runtime.model}</small></div>
       </header>
-      <HistorySelector options={histories} active={context.active_history} disabled={busy || playback === "playing"} onSelect={loadHistory}/>
-      <details className="legacy-presets glass"><summary>旧版完整示例 / Advanced</summary><section className="preset-station" aria-label="完整示例">
-        <div className="preset-station-head"><span>八个完整示例</span><small>选择后会清空上一次动画状态</small></div>
-        <div className="preset-list">{presets.map((preset) => <button key={preset.id} className={`${activePreset === preset.id ? "selected" : ""} preset-${preset.tone}`} disabled={busy} onClick={() => loadPreset(preset.id)}><span>{preset.name}</span><small>{preset.description}</small></button>)}</div>
-      </section></details>
+      <CompetitionDemoPicker active={activeDemo} status={demoStatus} disabled={busy || playback === "playing"} onSelect={selectCompetitionDemo}/>
       {(notice || error) && <div className={`notice lab-notice ${error ? "error" : ""}`} role="status">{error || notice}<button aria-label="关闭提示" onClick={() => { setNotice(""); setError(""); }}>×</button></div>}
-      <ContextPanel context={context} event={event} onSave={saveContext} onUpload={upload}/>
+      <details className="competition-advanced glass"><summary><div><span className="eyebrow">ADVANCED EXPERIMENT</span><b>高级实验</b><small>历史组合、自定义 Event、JSON / TXT / MD、AI 构造与旧 Preset</small></div><span>展开高级控制</span></summary><div className="competition-advanced-body">
+        <HistorySelector options={histories} active={context.active_history} disabled={busy || playback === "playing"} onSelect={loadHistory}/>
+        <details className="legacy-presets"><summary>旧版八个完整示例</summary><section className="preset-station" aria-label="完整示例"><div className="preset-station-head"><span>旧版 Preset</span><small>选择后会清空上一次动画状态</small></div><div className="preset-list">{presets.map((preset) => <button key={preset.id} className={`${activePreset === preset.id ? "selected" : ""} preset-${preset.tone}`} disabled={busy} onClick={() => loadPreset(preset.id)}><span>{preset.name}</span><small>{preset.description}</small></button>)}</div></section></details>
+        <ContextPanel context={context} event={event} onSave={saveContext} onUpload={upload}/>
+        <div className="advanced-experiment-grid"><HouseholdEventSelector context={context} event={event} disabled={busy || playback === "playing" || Boolean(awaitingGoal)} onChange={changeEvent}/><ScenarioComposer options={options} draft={draft} event={event} disabled={busy || playback === "playing"} onGenerate={generateScenario} onEventChange={changeEvent}/></div>
+      </div></details>
       <div className="lab-workspace">
-        <div className="lab-input-column"><HouseholdEventSelector context={context} event={event} disabled={busy || playback === "playing" || Boolean(awaitingGoal)} onChange={changeEvent}/><FeedbackSimulationPanel goal={decision?.care_goal} enabled={playback === "complete"} busy={busy} onSubmit={submitFeedback}/><details className="experimental-builder"><summary>Experimental · 旧版场景构造</summary><ScenarioComposer options={options} draft={draft} event={event} disabled={busy || playback === "playing"} onGenerate={generateScenario} onEventChange={changeEvent}/></details></div>
+        <div className="lab-input-column"><section className="demo-guide glass"><span className="eyebrow">DEMO GUIDE</span><h2>{demoStatus === "READY" ? "场景已准备" : demoStatus === "RUNNING" ? "系统正在行动" : demoStatus === "WAITING FEEDBACK" ? "请提交反馈" : "本轮闭环完成"}</h2><p>{demoStatus === "READY" ? "先确认上方场景，再点击“开始场景”。" : demoStatus === "RUNNING" ? "跟随中间时间线观察状态变化。" : demoStatus === "WAITING FEEDBACK" ? "选择本人或监护人的真实反馈，触发目标重评。" : "可切换另一个旗舰场景继续演示。"}</p></section><FeedbackSimulationPanel goal={decision?.care_goal} enabled={playback === "complete"} busy={busy} onSubmit={submitFeedback}/></div>
         <section className="lab-center">
           <SmartHomeScene context={context} resultContext={resultContext} decision={decision} stage={stage} playback={playback} runMode={runMode}/>
           <Pipeline active={stage} status={playback} speed={speed} disabled={busy} awaitingFeedback={awaitingGoal} runMode={runMode} onToggle={() => setPlayback((current) => current === "playing" ? "paused" : current === "paused" ? "playing" : current)} onStep={step} onReplay={replay} onSpeed={setSpeed}/>
-          <button className="run-simulation" disabled={busy || playback === "playing" || Boolean(awaitingGoal)} onClick={execute}>{busy ? "正在准备数据…" : awaitingGoal ? "请先提交当前 Goal 的反馈" : decision && playback === "complete" ? "再次运行当前场景" : "开始运行 Agent 动画"}<span>→</span></button>
+          <button className="run-simulation" disabled={busy || playback === "playing" || Boolean(awaitingGoal)} onClick={execute}>{busy ? "正在准备数据…" : awaitingGoal ? "请先提交当前 CareGoal 的反馈" : decision && playback === "complete" ? "重新开始场景" : "开始场景"}<span>→</span></button>
         </section>
         <aside className="lab-results">
           <WorldStatePanel world={decision?.world_state} visible={stage >= 2}/>
