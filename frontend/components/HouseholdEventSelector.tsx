@@ -14,7 +14,7 @@ const templates: Record<Target, EventTemplate[]> = {
     { id: "elder-bored", label: "我有点无聊", event: { type: "conversation", source: "user_voice", target_person_id: "elder_li", person: "grandpa", data: { text: "我一个人有点无聊。", location: "living_room" } } },
   ],
   child_xiaoyu: [
-    { id: "child-door", label: "陌生人敲门 / Doorbell", event: { type: "sensor", source: "door_sensor", target_person_id: "child_xiaoyu", person: "child", data: { open: true, visitor: "unknown", location: "entrance" } } },
+    { id: "child-door", label: "陌生人敲门 / Doorbell", event: { type: "sensor", source: "door_sensor", target_person_id: "child_xiaoyu", person: "child", data: { open: true, visitor: "unknown", guardian_absent: true, location: "entrance" } } },
     { id: "child-zone", label: "Leave Safe Zone", event: { type: "sensor", source: "watch_geofence", target_person_id: "child_xiaoyu", person: "child", data: { inside: false, zone: "家庭安全区" } } },
     { id: "child-afraid", label: "我害怕", event: { type: "conversation", source: "user_voice", target_person_id: "child_xiaoyu", person: "child", data: { text: "门外有人，我有点害怕。", location: "living_room" } } },
     { id: "child-chat", label: "普通陪伴", event: { type: "conversation", source: "user_voice", target_person_id: "child_xiaoyu", person: "child", data: { text: "陪我聊一会儿吧。", location: "living_room" } } },

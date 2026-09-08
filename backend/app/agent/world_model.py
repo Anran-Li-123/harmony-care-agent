@@ -114,7 +114,8 @@ class WorldModelBuilder:
     def _apply_event(self, world: WorldState, context: ContextState, event: CareEvent) -> None:
         target = world.people.get(event.target_person_id or "")
         location = str(event.data.get("location") or (target.location if target else "unknown"))
-        if target and location != "unknown":
+        # A door sensor reports the entrance device location, not the child's position.
+        if target and location != "unknown" and event.source != "door_sensor":
             self._move_person(world, target.person_id, location)
         sensor = world.sensors.get(event.source)
         if sensor and event.type in {"sensor", "environment"}:
@@ -132,7 +133,7 @@ class WorldModelBuilder:
         elif event.source == "door_sensor" and target and target.role == "child":
             target.status = "safety_concern"
             child_at_home = target.location in HOME_ROOMS
-            guardian_absent = any(note in context.environment.notes for note in {"家长外出", "儿童独自在家"})
+            guardian_absent = bool(event.data.get("guardian_absent")) or any(note in context.environment.notes for note in {"家长外出", "儿童独自在家"})
             reason = "child_alone_door_event" if child_at_home and guardian_absent else "child_door_event"
             self._add_risk(world, "entrance", reason, "concern")
         elif event.source == "watch_geofence" and event.data.get("inside") is False and target:

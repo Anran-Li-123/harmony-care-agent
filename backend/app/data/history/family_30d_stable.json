@@ -45,7 +45,7 @@
       }
     },
     "child_xiaoyu":{
-      "person_id":"child_xiaoyu","role":"child","name":"小宇","location":"bedroom","status":"normal",
+      "person_id":"child_xiaoyu","role":"child","name":"小宇","location":"living_room","status":"normal",
       "working_memory":[{"id":"c30_w01","timestamp":"2026-09-06T20:42:00+08:00","kind":"routine","content":"周末阅读记录已完成，今晚选择短篇睡前故事","expires_hint":"今晚"}],
       "episodic_memory":[
         {"id":"c30_e01","timestamp":"2026-08-08T16:57:00+08:00","person":"child_xiaoyu","event":"放学后回家并向机器人报平安","location":"entrance","result":"监护人收到到家状态","importance":"normal"},
@@ -107,7 +107,7 @@
     "watch_activity":{"id":"watch_activity","label":"老人手表活动状态","location":"wearable"},
     "watch_geofence":{"id":"watch_geofence","label":"儿童手表安全区","location":"wearable"}
   },
-  "environment":{"lighting":"dim","time_of_day":"night","temperature_c":23,"noise_level":"quiet","home_mode":"normal","occupancy":{"bedroom":["elder_li","child_xiaoyu"],"living_room":["robot"]},"door_state":"closed","notes":["一老一小共同居住","机器人日常参与陪伴","最近三十天作息总体稳定","家庭设备整体在线"]},
+  "environment":{"lighting":"dim","time_of_day":"night","temperature_c":23,"noise_level":"quiet","home_mode":"normal","occupancy":{"bedroom":["elder_li"],"living_room":["child_xiaoyu","robot"]},"door_state":"closed","notes":["一老一小共同居住","机器人日常参与陪伴","最近三十天作息总体稳定","家庭设备整体在线"]},
   "active_history":"family_30d_stable",
   "active_preset":"family-history"
 }

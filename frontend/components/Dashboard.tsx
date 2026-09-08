@@ -76,7 +76,8 @@ export function Dashboard() {
       setNotice(runMode === "feedback" ? `反馈闭环完成：${decision?.goal_evaluation?.outcome || "目标状态已更新"}。` : "首轮干预完成：设备结果与 Pending Memory 已同步。需要反馈的 Goal 可继续运行第二轮。");
       return;
     }
-    const timer = window.setTimeout(() => setStage((current) => Math.min(current + 1, finalStage)), 900 / speed);
+    const stageDuration = stage === 5 ? (runMode === "initial" ? 2200 : 1300) : runMode === "feedback" ? 780 : 900;
+    const timer = window.setTimeout(() => setStage((current) => Math.min(current + 1, finalStage)), stageDuration / speed);
     return () => window.clearTimeout(timer);
   }, [decision?.goal_evaluation?.outcome, playback, resultContext, runMode, speed, stage]);
 
@@ -140,6 +141,9 @@ export function Dashboard() {
         care_goal: response.updated_goal,
         agent_plan: response.follow_up_plan,
         goal_evaluation: response.goal_evaluation,
+        feedback: response.feedback,
+        previous_world_state: decision.world_state,
+        previous_goal_status: decision.care_goal.status,
         actions: response.actions,
         execution_results: response.execution_results,
         memory_updates: [{ type: "episodic", reason: "同一 Goal 的反馈已评估", preview: response.goal_evaluation.summary }],
@@ -192,7 +196,6 @@ export function Dashboard() {
 
   if (!context || !draft || !event || !options) return <main className="loading-screen"><div className="pulse-orb"/><h1>正在连接 Harmony Care Agent…</h1>{error && <p>{error}</p>}</main>;
 
-  const sceneResult = stage >= 4 ? resultContext : null;
   const deviceContext = stage >= 5 && resultContext ? resultContext : context;
   const awaitingGoal = decision?.care_goal?.status === "awaiting_feedback";
 
@@ -213,7 +216,7 @@ export function Dashboard() {
       <div className="lab-workspace">
         <div className="lab-input-column"><HouseholdEventSelector context={context} event={event} disabled={busy || playback === "playing" || Boolean(awaitingGoal)} onChange={changeEvent}/><FeedbackSimulationPanel goal={decision?.care_goal} enabled={playback === "complete"} busy={busy} onSubmit={submitFeedback}/><details className="experimental-builder"><summary>Experimental · 旧版场景构造</summary><ScenarioComposer options={options} draft={draft} event={event} disabled={busy || playback === "playing"} onGenerate={generateScenario} onEventChange={changeEvent}/></details></div>
         <section className="lab-center">
-          <SmartHomeScene context={context} resultContext={sceneResult} decision={decision} stage={stage} playback={playback}/>
+          <SmartHomeScene context={context} resultContext={resultContext} decision={decision} stage={stage} playback={playback} runMode={runMode}/>
           <Pipeline active={stage} status={playback} speed={speed} disabled={busy} awaitingFeedback={awaitingGoal} runMode={runMode} onToggle={() => setPlayback((current) => current === "playing" ? "paused" : current === "paused" ? "playing" : current)} onStep={step} onReplay={replay} onSpeed={setSpeed}/>
           <button className="run-simulation" disabled={busy || playback === "playing" || Boolean(awaitingGoal)} onClick={execute}>{busy ? "正在准备数据…" : awaitingGoal ? "请先提交当前 Goal 的反馈" : decision && playback === "complete" ? "再次运行当前场景" : "开始运行 Agent 动画"}<span>→</span></button>
         </section>

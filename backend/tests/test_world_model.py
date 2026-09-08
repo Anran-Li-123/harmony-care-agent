@@ -34,10 +34,11 @@ def test_stable_family_fall_world_state_keeps_both_people_and_marks_bedroom():
 def test_child_door_event_only_changes_child_and_entrance_interpretation():
     context = history_context("family_30d_stable")
     elder_before = context.people["elder_li"].model_dump()
+    child_location_before = context.people["child_xiaoyu"].location
     event = CareEvent(type="sensor", source="door_sensor", target_person_id="child_xiaoyu", data={"open": True, "location": "entrance"})
     world = builder.build(context, event)
     assert world.people["child_xiaoyu"].status == "safety_concern"
-    assert world.people["child_xiaoyu"].location == "entrance"
+    assert world.people["child_xiaoyu"].location == child_location_before
     assert world.people["elder_li"].status == elder_before["status"]
     assert world.people["elder_li"].location == elder_before["location"]
     assert world.rooms["entrance"].risk_indicator == "concern"

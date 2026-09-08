@@ -178,11 +178,14 @@ def test_feedback_target_mismatch_and_unsupported_type_are_clear_errors():
 def test_same_family_can_run_child_goal_after_fall_goal_completed():
     fall = start_fall()
     assert feedback(fall["decision"]["care_goal"]["goal_id"], "user_response", {"response": "im_fine"}, source="robot_microphone", target="elder_li").status_code == 200
-    child = client.post("/api/events/trigger", json={"event": {"type": "sensor", "source": "door_sensor", "target_person_id": "child_xiaoyu", "data": {"open": True, "visitor": "unknown", "location": "entrance"}}})
+    child = client.post("/api/events/trigger", json={"event": {"type": "sensor", "source": "door_sensor", "target_person_id": "child_xiaoyu", "data": {"open": True, "visitor": "unknown", "guardian_absent": True, "location": "entrance"}}})
     assert child.status_code == 200
     body = child.json()
     assert body["context"]["active_history"] == "family_30d_stable"
     assert body["decision"]["care_goal"]["goal_type"] == "keep_child_safe_from_unknown_visitor"
+    assert body["decision"]["risk_level"] == "high"
+    assert body["decision"]["world_state"]["people"]["child_xiaoyu"]["location"] == "living_room"
+    assert any(area["location"] == "entrance" for area in body["decision"]["world_state"]["risk_areas"])
 
 
 def test_old_presets_and_static_histories_continue_to_validate():
@@ -191,3 +194,6 @@ def test_old_presets_and_static_histories_continue_to_validate():
         assert client.post("/api/events/trigger", json={"event": preset_event(preset_id).model_dump()}).status_code == 200
     for history_id in ["family_cold_start", "family_7d_normal", "family_30d_stable"]:
         assert history_context(history_id).active_history == history_id
+    flagship = history_context("family_30d_stable")
+    assert flagship.people["elder_li"].location == "bedroom"
+    assert flagship.people["child_xiaoyu"].location == "living_room"
