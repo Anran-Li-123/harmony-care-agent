@@ -1,158 +1,152 @@
-# Harmony Care Agent Demo
+# Harmony Care Agent
 
-《面向“一老一小”全场景看护的鸿蒙分布式智能陪伴机器人系统研发》Web Demo。
+《面向“一老一小”全场景看护的鸿蒙分布式智能陪伴机器人系统》比赛 Web Demo。
 
-这是一个面向大学生创新竞赛的可运行演示：以 AI Agent 为家庭智能中枢，串联**环境感知 → 上下文理解 → 安全决策 → Robot / Watch / Phone 协同 → 记忆更新 → 长期画像演化**。当前的终端是 Web 模拟设备；其适配器边界已预留给未来 HarmonyOS 分布式设备实现。
+项目以陪伴机器人作为家庭中的移动智能中枢：它理解人物、房间、设备和风险状态，建立看护目标，执行具身行动并协同全屋设备，最后依据反馈完成目标评估与事件记忆收束。
 
-## 核心设计
+> 当前版本是可重复运行的 **Web Mock Demo**。它展示架构、交互与闭环，不表示已经接入真实 HarmonyOS 设备、软总线、机器人或传感器硬件。
+
+## 核心技术路线
 
 ```text
-Working / Episodic / Profile / Knowledge / Device / Sensor / Environment
-                                  + New Event
-                                        ↓
-ContextAssembler → SafetyPolicy → KnowledgeRetriever → CareGoal / AgentPlan
-                                        ↓
-             PlanStep → DeviceRegistry + CapabilityMatcher → ActionRouter
-                                        ↓
-             Robot | Watch | Phone | Light | DoorLock | SmartScreen
-                                        ↓
-       FeedbackEvent → WorldState → GoalEvaluator → Follow-up Plan
-                                        ↓
-                  MemoryExtractor → ProfileUpdater → New Context
+Household + Static Historical Context + Current Event
+                         ↓
+Home World Model（家庭空间世界模型）
+                         ↓
+Hybrid Safety（混合安全决策）+ Care Agent（看护智能体）
+                         ↓
+CareGoal（看护目标）+ Agent Plan（智能行动计划）
+                         ↓
+Harmony Device Capability（鸿蒙设备能力）匹配与 Mock 执行
+                         ↓
+Embodied Execution（具身执行）+ Feedback Loop（反馈闭环）
+                         ↓
+Goal Evaluation（目标评估）+ Episodic Memory（事件记忆）
+                         ↓
+Dynamic User Profile（动态用户画像）审慎演化
 ```
 
-- **一套链路支持冷启动和历史用户**：新用户允许空画像、空事件记忆；每次交互仍进入统一的编排流程。
-- **事件记忆不等于用户画像**：`MemoryExtractor` 写入工作/事件记忆，`ProfileUpdater` 再基于证据决定画像变化。
-- **显式优先，推断克制**：称呼等显式信息可立即保存；京剧、作息等推断需要持续证据；医疗、药物、过敏、紧急联系人等高风险字段不能由一次普通事件推断。
-- **安全优先于 LLM**：跌倒、儿童独处时门磁开启等明确信号先由 `SafetyPolicy` 处理，再路由终端动作。
-- **能力匹配而非硬编码终端**：`DeviceRegistry` 与 `CapabilityMatcher` 按设备能力、位置、家庭成员和在线状态选择执行设备；离线设备自动跳过并使用仍可用的能力。
-- **目标、计划与设备动作分层**：`CareGoal` 表达看护目标，`AgentPlan`/`PlanStep` 表达高层步骤，具体 `DeviceAction` 仍由能力匹配层生成；安全场景使用确定性计划，普通陪伴可使用现有 LLM 输出辅助高层描述。
-- **受控反馈闭环**：需要确认的旗舰场景支持 `FeedbackEvent → WorldState 更新 → GoalEvaluation → Follow-up Plan → 设备执行 → Memory Finalization`；安全结果使用确定性规则，不调用 LLM。
-- **闭环保持有限**：每次反馈只运行一次评估和一次 Follow-up Plan，不包含无限循环、通用自主 Replan 或真实紧急服务调用。
-- **当前是可验证的 Web Mock**：六类 Harmony 设备及结构化执行结果均由 Mock Adapter 演示；`HarmonySoftBusAdapter` 仅保留接口占位，尚未接入真实 HarmonyOS SDK、软总线或硬件。
-- **真正可替换**：`LLMProvider`、`DeviceAdapter`、内存 Store、Knowledge Retriever 都是清晰边界，后续可换 Redis/PostgreSQL/向量库/HarmonyOS SDK。
+- **Home World Model**：统一表达老人、儿童、机器人、房间、设备、传感器和风险区域。
+- **Hybrid Safety**：跌倒、儿童独处门口事件等高风险场景由确定性规则优先保护；普通陪伴可以使用受控模型输出。
+- **CareGoal / Agent Plan**：先定义要保护什么，再形成可解释的行动步骤；设备动作由能力层匹配，而非前端硬编码。
+- **Harmony Device Capability**：机器人、灯光、门锁、智慧屏、Watch 和 Phone 均经 Mock Adapter 产生可验证执行结果；离线设备不会被选择。
+- **Feedback Loop**：显式反馈会更新世界状态，触发 Goal Evaluation 和必要的 Follow-up，再收束事件记忆。
 
-## 功能演示
+## 比赛演示模式
 
-| 预设 | 演示结果 |
+打开首页后选择“进入智能家庭演示”，或直接访问：
+
+```text
+http://localhost:3000/lab
+```
+
+`/lab` 默认展示两个旗舰场景。选择场景会自动加载 `family_30d_stable`、正确人物和当前事件，并重置 Runtime Goal、反馈、计划和动画状态；页面保持 **READY**，只有点击“开始场景”才运行。
+
+### 推荐 Competition Demo Guide（约 2–3 分钟）
+
+1. 选择 **老人夜间疑似跌倒**，点击“开始场景”。
+2. 观察 Fall Event → HIGH → CareGoal → Agent Plan → 灯光 / Robot / Watch / Phone → Await Feedback。
+3. 点击“老人回应：我没事”，确认 HIGH → MEDIUM、Goal COMPLETED、Memory `PENDING → RESOLVED`。
+4. 保持当前家庭，选择 **儿童独处陌生敲门**，点击“开始场景”。
+5. 观察 Entrance HIGH、Door `LOCKED`、Robot 前往玄关、SmartScreen / Watch / Phone 协同。
+6. 点击“家长拒绝访客”，确认 Goal COMPLETED、Door 继续 `LOCKED`、Memory RESOLVED。
+
+Advanced Experiment 默认折叠，包含家庭历史切换、自定义 Event、旧 Preset、AI 场景构造和 JSON / TXT / MD 导入；比赛演示不需要展开它。
+
+## 两个旗舰场景
+
+| 场景 | 闭环 |
 | --- | --- |
-| 全新老人首次交流 | 自我介绍后创建 Episode，显式学习 `preferred_name = 李爷爷` |
-| 老人夜间疑似跌倒 | 卧室跌倒触发，卧室与通道灯开启，Robot 前往确认、老人 Watch 震动、Phone 通知家属 |
-| 老人手表长时静止 | 请求本人和现场确认、同步监护人，但不作医疗诊断 |
-| 儿童独处门磁开启 | 门磁打开，DoorLock 保持锁定，Robot 到入口提醒，SmartScreen、儿童 Watch 与 Phone 协同 |
-| 儿童离开安全区 | Watch 提醒儿童并将位置状态变化同步给监护人 |
-| 老人日常陪伴 | 读取京剧偏好并提供陪伴，不产生紧急推送 |
-| 作息习惯逐渐变化 | 三条晚间事件形成持续证据，`sleep_time` 从 `21:30` 更新为 `22:45` |
-| 终端离线降级 | Watch 离线后改由 Robot 与 Phone 完成提示与反馈 |
+| 老人夜间疑似跌倒 | Fall Event → HIGH → Light ON → Robot Navigate / Observe / Speak → Watch / Phone → 本人反馈 → Goal Evaluation → Episodic Memory 收束 |
+| 儿童独处陌生敲门 | Door Event → Entrance HIGH → Door LOCKED → Robot 引导儿童 → SmartScreen / Watch / Phone → 家长反馈 → Goal Evaluation → Episodic Memory 收束 |
 
-项目首页位于 `/`；在线实验室位于 `/lab`。实验室提供八个完整示例、记忆/状态/事件组合器、受控 AI 场景构造、版本化 JSON 与 TXT/MD 导入、可暂停/单步/重播的家庭动画、手表与手机屏幕，以及 Timeline / Memory Evolution。
+门锁在当前安全策略中只允许保持锁定，**绝不自动 unlock**。
 
-## 目录
+## 当前能力与边界
+
+| 已实现的 Web Demo 能力 | 当前未实现的真实能力 |
+| --- | --- |
+| Web Digital Twin、Household Context、Static Historical Context | Real HarmonyOS Device、Real Harmony SoftBus |
+| Home World Model、Hybrid Safety、CareGoal、Agent Plan | Real Robot Hardware、Real Sensor Hardware |
+| Mock Harmony Device Capability、Embodied Robot Simulation | ROS2 Navigation、SLAM、Vision Model |
+| Feedback Closed Loop、Goal Evaluation、Memory Evolution | Medical Diagnosis、真实紧急服务调用 |
+
+所有家庭数据与人物均为虚构。系统不构成医疗诊断、治疗建议或真实看护承诺。
+
+## 目录结构
 
 ```text
 backend/
   app/
-    agent/          # 编排、安全、知识检索、LLM、记忆与画像更新
-    devices/        # Registry / CapabilityMatcher / Mock Adapters / ActionRouter
-    data/           # 五个演示 Preset
+    agent/          # World Model、安全策略、目标、计划、反馈、记忆
+    devices/        # Registry、Capability Matcher、Mock Adapter、Action Router
+    data/           # 静态家庭历史、Preset 与知识规则
     api/            # FastAPI endpoints
     schemas/        # Pydantic 数据契约
-    services/       # 可替换的内存 Store
-  tests/            # Mock-only API tests，不消耗 LLM token
+    services/       # DemoStore
+  tests/            # Mock-only API 与核心链路测试
 frontend/
-  app/              # Next.js entry 与样式
-  components/       # 场景、上下文、管线、终端、事件、记忆 UI
-  lib/              # 类型与 API client
+  app/              # Next.js 页面与全局样式
+  components/       # 首页、比赛演示、数字孪生、面板与 Pipeline
+  lib/              # API client、类型、比赛场景定义
 ```
 
-## 运行
+## 从干净环境启动
 
 需要 Python 3.10+、Node.js 20+。
 
 ```powershell
-# Terminal 1
+# Terminal 1：Backend
 cd backend
 python -m pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 
-# Terminal 2
+# Terminal 2：Frontend
 cd frontend
 npm install
 npm run dev
 ```
 
-打开 `http://localhost:3000`。后端健康检查为 `http://localhost:8000/api/health`。
+打开 `http://localhost:3000`，后端健康检查为 `http://localhost:8000/api/health`。
 
-## Mock Mode（比赛演示默认）
+### Mock Mode（比赛默认）
 
-复制 `backend/.env.example` 为 `backend/.env`，设置：
+复制根目录 `.env.example` 到 `backend/.env`，或直接创建以下最小配置：
 
 ```env
 MOCK_MODE=true
 MODEL_NAME=qwen3.8-flash
-```
-
-无需 API Key，即可完成所有预设、动画、记忆更新与 API 演示。Mock 决策是可重复的规则输出，适合稳定演示与自动化测试。
-
-## Real LLM Mode（Qwen）
-
-```env
-MOCK_MODE=false
-OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-OPENAI_API_KEY=你的密钥
-MODEL_NAME=qwen3.8-flash
 FRONTEND_URL=http://localhost:3000
 ```
 
-后端的 `OpenAICompatibleProvider` 使用 OpenAI Python SDK 的 `chat.completions`；密钥从不发送给浏览器，也不应提交到仓库。真实模式会要求模型仅输出 `risk_level`、`summary` 和 `evidence` 的 JSON；“AI Generate Sample” 也会由模型选择受控场景模板，再由后端生成 Schema 安全的 Context。解析、超时或 Schema 问题会降级到安全陪伴输出，不会让页面崩溃。
+Mock Mode 不需要 API Key，也不依赖外部 LLM 网络；两个旗舰 Demo、反馈闭环和自动化测试均可稳定运行。
 
-## API
+如需试验 Real LLM Mode，可参考 `backend/.env.example` 的占位字段。真实密钥仅保存在本地 `.env`，不得提交到仓库；比赛演示不依赖此模式。
+
+## API 概览
 
 | Method | Endpoint | 用途 |
 | --- | --- | --- |
-| GET | `/api/demo/presets` | 获取八个演示预设 |
-| GET | `/api/demo/scenario-options` | 获取可组合的用户、记忆、状态与触发选项 |
-| GET | `/api/demo/scenarios/{preset_id}` | 获取包含 Context 与 Event 的完整预设 |
-| POST | `/api/scenarios/generate` | 由结构化选择或受控 AI 构造版本化场景 |
-| GET/POST | `/api/context` | 读取或 Schema 校验后保存 Context |
-| POST | `/api/context/upload` | 导入 `.json` Context 或 `.txt/.md` 知识 |
-| POST | `/api/context/generate` | 生成一个受控的样例 Context |
-| POST | `/api/events/trigger` | 触发事件并运行 Agent |
-| POST | `/api/goals/{goal_id}/feedback` | 为当前 Active Goal 提交反馈并执行一次受控 Follow-up |
-| POST | `/api/agent/run` | 与 trigger 等价的编排入口 |
-| GET | `/api/agent/{decision_id}` | 读取既有结构化决策 |
-| GET | `/api/memory` / `/api/profile` | 读取记忆或画像 |
-| POST | `/api/reset?preset_id=...` | 重置到一个预设 |
+| GET | `/api/demo/histories` | 获取静态家庭历史选项 |
+| POST | `/api/demo/histories/{history_id}/load` | 加载历史并清除旧 Runtime Goal |
+| POST | `/api/events/trigger` | 触发 Current Event 并执行 Care Agent |
+| POST | `/api/goals/{goal_id}/feedback` | 提交当前 Goal 的显式反馈 |
+| POST | `/api/context/upload` | 导入 JSON Context 或 TXT / MD 规则 |
+| POST | `/api/reset?preset_id=...` | 重置到兼容 Preset |
 
-## 测试
+## 验证
 
 ```powershell
 cd backend
-python -m pytest -q
+python -m pytest
 
 cd ../frontend
 npx tsc --noEmit
 npm run build
 ```
 
-后端测试强制 `MOCK_MODE=true`，确保不会消耗任何真实模型 Token。
+后端测试强制使用 `MOCK_MODE=true`，不会消耗真实模型 Token。
 
-## Harmony Device Capability Layer
+## 未来硬件扩展
 
-当前静态家庭上下文包含 `robot_01`、老人/儿童手表、监护人手机、卧室/通道灯、玄关门锁和客厅智慧屏。动作使用 `target_device_id + capability + parameters + priority + reason`，执行后返回 `DeviceExecutionResult`，旧版 `target + action` 由单一兼容层转换。UI 中的设备状态、动作和执行结果均是 Web Mock，不代表已连接真实家庭设备。
-
-## CareGoal + Agent Plan
-
-当前编排链路为 `Event → WorldState → Safety → CareGoal → AgentPlan → CapabilityMatcher → DeviceAction → DeviceExecutionResult`。跌倒、儿童门口、安全区和设备离线使用确定性 Planner；低风险陪伴在 Mock Mode 下仍有稳定计划。需要反馈的首轮计划停在 `AWAITING FEEDBACK`，随后可通过显式 Demo 反馈继续；系统不接入真实设备反馈。
-
-## Feedback + Goal Evaluation
-
-Web Demo 现在为老人跌倒和儿童门口两类旗舰场景提供显式反馈按钮。反馈必须绑定当前 `goal_id`，先更新 Context 中的当前状态并重建 WorldState，再由确定性 `GoalEvaluator` 输出 `SUCCESS`、`CONTINUE` 或 `ESCALATE`。Follow-up Plan 仍通过 CapabilityMatcher 选择在线设备，门锁只允许保持锁定。Pending Episode 使用 `related_goal_id` 原位收束为 resolved、escalated 或继续 pending，不会根据一次反馈修改长期画像。
-
-## HarmonyOS 扩展路径
-
-1. 在现有 `HarmonySoftBusAdapter` 边界接入真实 HarmonyOS 分布式设备/软总线实现，并替换六类 Mock Adapter。
-2. 用 Redis 与 PostgreSQL 替换 `DemoStore`，以支持会话与长期记忆持久化。
-3. 用向量数据库替换当前的 tag 检索，实现可追溯 RAG。
-4. 接入可信传感器、管理员配置与授权机制，再逐步支持更多健康/家庭规则。
-5. 在保留 Safety Policy 的前提下，扩展 Safety / Companion / Planning 子 Agent。
+在不改变 Care Agent 核心接口的前提下，可以将 Mock Adapter 替换为经过授权的真实 HarmonyOS 分布式设备、可信传感器和机器人硬件适配器。真实环境运行还需要账户授权、隐私治理、安全测试、人工兜底与合规评估；这些不属于当前比赛 Web Demo 的实现范围。

@@ -2,6 +2,7 @@ import os
 
 os.environ["MOCK_MODE"] = "true"
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.data.history_loader import history_context
@@ -41,6 +42,22 @@ def test_offline_device_is_not_a_default_match():
     context.devices["watch"].online = False
     matcher = CapabilityMatcher(DeviceRegistry(context.devices))
     assert matcher.match("vibrate", target_person_id="elder_li") is None
+
+
+@pytest.mark.parametrize(
+    ("device_key", "capability", "kwargs"),
+    [
+        ("watch", "vibrate", {"target_person_id": "elder_li"}),
+        ("phone", "push_notification", {}),
+        ("smart_screen_01", "show_message", {"location": "living_room", "device_type": DeviceType.SMART_SCREEN}),
+    ],
+)
+def test_matcher_never_selects_an_offline_key_device(device_key: str, capability: str, kwargs: dict[str, object]):
+    context = history_context("family_30d_stable")
+    context.devices[device_key].online = False
+    context.devices[device_key].status = "offline"
+    matcher = CapabilityMatcher(DeviceRegistry(context.devices))
+    assert matcher.match(capability, **kwargs) is None
 
 
 def test_light_switch_returns_structured_result_and_updates_context():
