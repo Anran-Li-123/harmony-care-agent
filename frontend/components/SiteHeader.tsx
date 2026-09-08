@@ -4,8 +4,8 @@ export function SiteHeader({ lab = false }: { lab?: boolean }) {
   return <header className={`site-header ${lab ? "site-header-lab" : ""}`}>
     <div className="site-nav">
       <Link className="site-brand" href="/" aria-label="Harmony Care Agent 首页">
-        <span className="site-brand-mark">H</span>
-        <span><b>Harmony Care Agent</b><small>鸿蒙分布式智能陪伴</small></span>
+        <span className="site-brand-mark"><img src="/harmony-care-robot.svg" alt="" /></span>
+        <span><b>鸿蒙看护智能体</b><small>Harmony Care Agent · 分布式智能陪伴</small></span>
       </Link>
       {!lab && <nav aria-label="项目导航">
         <a href="#solution">核心技术链</a>

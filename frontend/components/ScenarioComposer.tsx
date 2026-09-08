@@ -64,7 +64,7 @@ export function ScenarioComposer({ options, draft, event, disabled, onGenerate, 
   const sourceLabel = { preset: "完整示例", template: "结构化组合", ai: "AI 构造", fallback: "稳定模板回退", upload: "文件导入" }[draft.source];
 
   return <section className="scenario-composer glass">
-    <div className="panel-heading"><div><span className="eyebrow">SCENARIO BUILDER</span><h2>构造本次家庭场景</h2></div><span className={`source-chip source-${draft.source}`}>{sourceLabel}</span></div>
+    <div className="panel-heading"><div><span className="eyebrow">场景构造器（Scenario Builder）</span><h2>构造本次家庭场景</h2></div><span className={`source-chip source-${draft.source}`}>{sourceLabel}</span></div>
     <div className="scenario-current"><b>{draft.title}</b><p>{draft.description}</p>{draft.warnings.map((warning) => <span key={warning}>提示：{warning}</span>)}</div>
     <div className="persona-switch" aria-label="选择用户类型">
       <button className={persona === "elder" ? "active" : ""} onClick={() => setPersona("elder")} disabled={disabled}>老人用户</button>
@@ -76,7 +76,7 @@ export function ScenarioComposer({ options, draft, event, disabled, onGenerate, 
       <label><span>3 · 新输入或变化</span><select value={trigger} onChange={(e) => setTrigger(e.target.value)} disabled={disabled}>{triggerOptions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select><small>{triggerOptions.find((item) => item.id === trigger)?.description}</small></label>
     </div>
     <button className="builder-button" disabled={disabled} onClick={() => onGenerate(request(false))}>生成结构化场景</button>
-    <div className="ai-builder"><label htmlFor="scenario-prompt">让 AI 选择一组受控数据</label><textarea id="scenario-prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} disabled={disabled}/><button disabled={disabled || !prompt.trim()} onClick={() => onGenerate(request(true))}>✦ AI 构造场景</button></div>
+    <div className="ai-builder"><label htmlFor="scenario-prompt">让人工智能（AI）选择一组受控数据</label><textarea id="scenario-prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} disabled={disabled}/><button disabled={disabled || !prompt.trim()} onClick={() => onGenerate(request(true))}>✦ AI 构造场景</button></div>
     <div className="incoming-event">
       <div><span>本次输入</span><b>{event.type === "conversation" ? "用户对话" : "无对话 · 状态变化"}</b></div>
       <div className="event-target-switch" aria-label="选择事件对象">

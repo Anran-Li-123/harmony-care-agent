@@ -10,7 +10,7 @@ function stateText(device: Device) {
   if (device.device_type === "light") return device.state.power === "on" ? `已开启 · ${String(device.state.brightness ?? 100)}%` : "已关闭";
   if (device.device_type === "door_lock") return device.state.locked === false ? "未锁定" : "已锁定";
   if (device.device_type === "smart_screen") return device.state.display === "idle" ? "待机" : `显示：${String(device.state.display)}`;
-  return device.status || "ready";
+  return device.status === "ready" ? "待命" : device.status || "待命";
 }
 
 function DeviceCard({ device, decision, visible }: { device: Device; decision: Decision | null; visible: boolean }) {
@@ -36,7 +36,7 @@ export function DevicePanel({ devices, decision, stage }: { devices: Record<stri
   };
   const visible = stage >= 5;
   return <section className="terminal-feedback glass">
-    <div className="panel-heading"><div><span className="eyebrow">HARMONY DEVICE CAPABILITIES</span><h2>分布式设备能力层</h2></div><span className="small muted">Web Mock</span></div>
+    <div className="panel-heading"><div><span className="eyebrow">结果反馈 · 鸿蒙设备</span><h2>分布式设备能力</h2></div><span className="small muted">网页仿真</span></div>
     {(Object.keys(groups) as Array<keyof typeof groups>).map((group) => <div className="device-capability-group" key={group}><h3>{groupLabel[group]} <small>{groups[group].length}</small></h3><div className="device-capability-grid">{groups[group].map((device) => <DeviceCard key={device.device_id} device={device} decision={decision} visible={visible}/>)}</div></div>)}
   </section>;
 }
