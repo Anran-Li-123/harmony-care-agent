@@ -1,3 +1,15 @@
+## 🌐 在线宣传网站（GitHub Pages）
+
+项目同名开源宣传网站由 `Anran-Li-123` 维护并通过 GitHub Pages 提供：
+
+- 🔗 **网站入口：** https://Anran-Li-123.github.io/harmony-care-agent/
+- 📁 **网站源代码：** [`site/`](./site)（`index.html` / `logo.svg` / `console.png`）
+- 🚀 **原项目入口（教师指定）：** https://github.com/robot999666/harmony-care-agent
+
+> 上游代码仓库（`backend/`、`frontend/`、`docs/`）归 `robot999666` 维护，本仓库仅在其基础上增量添加 `/site` 子目录与本 banner，**未对上游任何文件做修改**。
+
+---
+
 # Harmony Care Agent
 
 《面向“一老一小”全场景看护的鸿蒙分布式智能陪伴机器人系统》比赛 Web Demo。
