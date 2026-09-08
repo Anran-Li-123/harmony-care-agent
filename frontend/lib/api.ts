@@ -1,6 +1,17 @@
 import type { CareEvent, Context, Decision, FeedbackResponse, FeedbackSubmission, HistoryOption, Preset, ScenarioDraft, ScenarioGenerationRequest, ScenarioOptions } from "./types";
 
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const LOCAL_API_BASE_URL = "http://localhost:8000";
+
+function apiBaseUrl(): string {
+  // Local frontend development should keep working without changing the shared
+  // public endpoint. Public deployments always use the configured env value.
+  if (typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+    return LOCAL_API_BASE_URL;
+  }
+  return process.env.NEXT_PUBLIC_API_BASE_URL || LOCAL_API_BASE_URL;
+}
+
+const BASE = apiBaseUrl();
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${BASE}${path}`, { ...init, headers: { "Content-Type": "application/json", ...(init?.headers || {}) } });

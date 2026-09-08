@@ -99,7 +99,7 @@ frontend/
 # Terminal 1：Backend
 cd backend
 python -m pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 # Terminal 2：Frontend
 cd frontend
@@ -111,13 +111,29 @@ npm run dev
 
 ### Mock Mode（比赛默认）
 
-复制根目录 `.env.example` 到 `backend/.env`，或直接创建以下最小配置：
+复制根目录 `.env.example` 为根目录 `.env`。前端和后端都读取这一个文件，**不要**再创建或维护 `frontend/.env`、`backend/.env`：
 
 ```env
+PUBLIC_FRONTEND_URLS=http://localhost:3000,https://harmony-care-agent.vercel.app,https://676512d0.r28.cpolar.top
+PUBLIC_BACKEND_URL=https://4d84a994.r28.cpolar.top
+NEXT_PUBLIC_API_BASE_URL=https://4d84a994.r28.cpolar.top
+BACKEND_HOST=0.0.0.0
+BACKEND_PORT=8000
 MOCK_MODE=true
 MODEL_NAME=qwen3.8-flash
-FRONTEND_URL=http://localhost:3000
 ```
+
+`PUBLIC_FRONTEND_URLS` 是后端 CORS 白名单，按逗号拆分；不会使用通配符。前端在 `localhost` / `127.0.0.1` 开发时会自动请求 `http://localhost:8000`，因此保留本地联调能力；从 Vercel 或 cpolar 打开时则使用 `NEXT_PUBLIC_API_BASE_URL`。
+
+### Vercel 环境变量
+
+Vercel 不会读取开发机上的根目录 `.env`。请在 Vercel 项目环境变量中设置：
+
+```env
+NEXT_PUBLIC_API_BASE_URL=https://4d84a994.r28.cpolar.top
+```
+
+后端 cpolar 地址变化时：本地只修改根目录 `.env` 中的 `PUBLIC_BACKEND_URL` 与 `NEXT_PUBLIC_API_BASE_URL`；若前端 cpolar 地址也变化，同步更新 `PUBLIC_FRONTEND_URLS`。然后在 Vercel 中只同步更新 `NEXT_PUBLIC_API_BASE_URL` 并重新部署。cpolar 应映射本机后端端口 `8000`。
 
 Mock Mode 不需要 API Key，也不依赖外部 LLM 网络；两个旗舰 Demo、反馈闭环和自动化测试均可稳定运行。
 
